@@ -87,51 +87,59 @@
       <section style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
 
         <!-- Invite Form -->
-        <article class="card">
-          <h3 class="card-title mb-2">Send Invitation</h3>
-          <p style="font-size: 0.9rem; color: var(--slate-500); margin-bottom: 1.5rem;">
-            Enter the email address of the person you want to invite. They will receive an email with a link to join.
-          </p>
+<article class="card">
+  <h3 class="card-title mb-2">Send Invitation</h3>
+  <p style="font-size: 0.9rem; color: var(--slate-500); margin-bottom: 1.5rem;">
+    Enter the email address and select the role for the person you want to invite.
+  </p>
 
-          <form id="invite-form" data-testid="invite-form">
-            <fieldset class="form-group" style="border: none; padding: 0; margin: 0;">
-              <label class="form-label" for="invite-group">Group *</label>
-              <select id="invite-group" name="group" class="form-select" style="margin-bottom:.75rem;" required data-testid="select-invite-group">
-                <option value="">Loading groups…</option>
-              </select>
-              <label class="form-label" for="invite-email">Email Address *</label>
-              <section class="input-group">
-                <input
-                  type="email"
-                  id="invite-email"
-                  name="email"
-                  class="form-input"
-                  placeholder="member@example.com"
-                  required
-                  data-testid="input-invite-email"
-                >
-                <button type="submit" class="btn btn-primary" data-testid="btn-send-invite">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                  </svg>
-                  Send Invite
-                </button>
-              </section>
-            </fieldset>
-          </form>
+  <form id="invite-form" data-testid="invite-form">
+    <fieldset class="form-group" style="border: none; padding: 0; margin: 0;">
+      <label class="form-label" for="invite-group">Group *</label>
+      <select id="invite-group" name="group" class="form-select" style="margin-bottom:.75rem;" required data-testid="select-invite-group">
+        <option value="">Loading groups…</option>
+      </select>
 
-          <aside class="alert alert-success" style="margin-top: 1.5rem;" data-testid="invite-info">
-            <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            <p style="margin: 0;">
-              <strong>Note:</strong> This is a frontend demo. Email invitations are simulated and will appear in the list below.
-            </p>
-          </aside>
-        </article>
+      <label class="form-label" for="invite-email">Email Address *</label>
+      <input
+        type="email"
+        id="invite-email"
+        name="email"
+        class="form-input"
+        style="margin-bottom:.75rem;"
+        placeholder="member@example.com"
+        required
+        data-testid="input-invite-email"
+      >
+
+      <label class="form-label" for="invite-role">Role *</label>
+      <select id="invite-role" name="role" class="form-select" style="margin-bottom:1rem;" required data-testid="select-invite-role">
+        <option value="member">Member</option>
+        <option value="treasurer">Treasurer</option>
+       
+      </select>
+
+      <button type="submit" class="btn btn-primary" data-testid="btn-send-invite">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+        Send Invite
+      </button>
+    </fieldset>
+  </form>
+
+  <aside class="alert alert-success" style="margin-top: 1.5rem;" data-testid="invite-info">
+    <svg class="alert-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="16" x2="12" y2="12"></line>
+      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+    </svg>
+    <p style="margin: 0;">
+      <strong>Note:</strong> Invited users will receive the role you assign here.
+    </p>
+  </aside>
+</article>
 
         <!-- Invite List -->
         <article class="card">

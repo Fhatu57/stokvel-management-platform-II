@@ -18,6 +18,7 @@ export function initCreateGroup() {
     const startDate          = document.getElementById('startDate')?.value || null;
     const description        = document.getElementById('description')?.value.trim() || '';
 
+    // Validation
     if (!name) {
       showToast('Please enter a group name', 'error');
       return;
@@ -30,14 +31,18 @@ export function initCreateGroup() {
       showToast('Please select a contribution frequency', 'error');
       return;
     }
+    if (!startDate) {
+      showToast('Please select a start date', 'error');
+      return;
+    }
 
     const frequencyNormalised = frequency.toLowerCase();
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Creating…';
+    submitBtn.innerHTML = 'Creating...';
 
     try {
-      await createGroup({
+      console.log('Creating group with data:', {
         name,
         description,
         contributionAmount,
@@ -45,11 +50,36 @@ export function initCreateGroup() {
         maxMembers: 20,
         startDate,
       });
+
+      const result = await createGroup({
+        name,
+        description,
+        contributionAmount,
+        frequency: frequencyNormalised,
+        maxMembers: 20,
+        startDate,
+      });
+
+      console.log('Group created successfully:', result);
       showToast('Group created successfully!');
-      setTimeout(() => { window.location.href = 'admin-dashboard.html'; }, 800);
+      
+      setTimeout(() => { 
+        window.location.href = 'admin-dashboard.html'; 
+      }, 1500);
+      
     } catch (err) {
-      console.error('createGroup error:', err);
-      showToast('Error: ' + (err?.message || 'Unknown error'), 'error');
+      console.error('createGroup error details:', err);
+      
+      // Show more helpful error messages
+      let errorMessage = err?.message || 'Unknown error';
+      
+      if (errorMessage.includes('permission denied') || errorMessage.includes('violates row-level security')) {
+        errorMessage = 'You do not have admin permissions to create a group. Please contact your system administrator.';
+      } else if (errorMessage.includes('duplicate key')) {
+        errorMessage = 'A group with this name already exists.';
+      }
+      
+      showToast('Error: ' + errorMessage, 'error');
       submitBtn.disabled = false;
       submitBtn.innerHTML = `
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

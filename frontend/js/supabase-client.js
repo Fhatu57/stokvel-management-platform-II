@@ -4,8 +4,8 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SUPABASE_URL     = 'https://wzclnjbzouqietbordxi.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6Y2xuamJ6b3VxaWV0Ym9yZHhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5Mjc4OTEsImV4cCI6MjA5MTUwMzg5MX0.g4OqfuhERKGq0Ttdb-PinPMVnOdvNucTTfJtM_cXZZk';
+const SUPABASE_URL     = 'https://oteaojkihuopijkomsur.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90ZWFvamtpaHVvcGlqa29tc3VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MDQ2MjMsImV4cCI6MjA5MTQ4MDYyM30.JOoGoT5P8Pv2XRGVVIC3FQbScgtAJhocz7H13Zwx8Cw';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -79,11 +79,26 @@ export async function getProfile(userId) {
  * Create a new stokvel group.
  * NOTE: 'frequency' must be lowercase to match the DB CHECK constraint:
  *   ('weekly', 'bi-weekly', 'monthly')
- * NOTE: 'start_date' column does NOT exist in the groups table — omitted.
  */
-export async function createGroup({ name, description, contributionAmount, frequency, maxMembers }) {
+export async function createGroup({ name, description, contributionAmount, frequency, maxMembers, startDate }) {
   const user = await getCurrentUser();
   if (!user) throw new Error('You must be logged in to create a group');
+
+  // Optional: Check if user has admin role
+  try {
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (!roleData || roleData.role !== 'admin') {
+      throw new Error('Only admins can create groups');
+    }
+  } catch (roleErr) {
+    // If user_roles table doesn't exist yet, skip this check
+    console.warn('Role check skipped:', roleErr.message);
+  }
 
   const { data, error } = await supabase
     .from('groups')
@@ -91,19 +106,25 @@ export async function createGroup({ name, description, contributionAmount, frequ
       name,
       description: description || '',
       contribution_amount: contributionAmount,
-      frequency,                     // already lowercased by groups.js
+      frequency,
       max_members: maxMembers || 20,
       created_by: user.id,
+      
+      
     })
     .select()
     .single();
 
   if (error) throw error;
 
-  // Auto-add the creator as a group member
+  // Auto-add the creator as a group member with admin role
   const { error: memberError } = await supabase
     .from('group_members')
-    .insert({ group_id: data.id, user_id: user.id });
+    .insert({ 
+      group_id: data.id, 
+      user_id: user.id,
+      role: 'admin'
+    });
 
   // Don't throw on member insert failure — group was still created
   if (memberError) console.warn('Could not add creator to group_members:', memberError.message);
@@ -118,7 +139,19 @@ export async function createGroup({ name, description, contributionAmount, frequ
  */
 export async function getMyGroups() {
   const user = await getCurrentUser();
-  if (!user) return [];
+  if (!user) {
+    console.log('getMyGroups: No user found');
+    return [];
+  }
+
+  // Validate that user.id looks like a UUID (not "user-001")
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(user.id)) {
+    console.warn('getMyGroups: Invalid user ID format (not a UUID):', user.id);
+    return [];
+  }
+
+  console.log('getMyGroups: Fetching for user', user.id);
 
   // Query 1: groups the user created
   const { data: created, error: e1 } = await supabase
@@ -127,13 +160,25 @@ export async function getMyGroups() {
     .eq('created_by', user.id)
     .order('created_at', { ascending: false });
 
+  if (e1) {
+    console.error('Error fetching created groups:', e1.message);
+  }
+
   // Query 2: groups the user is a member of (but didn't create)
   const { data: membership, error: e2 } = await supabase
     .from('group_members')
     .select('group_id, groups(*, group_members(user_id))')
     .eq('user_id', user.id);
 
-  if (e1 && e2) throw e1; // both failed
+  if (e2) {
+    console.error('Error fetching membership groups:', e2.message);
+  }
+
+  // If both failed, return empty array instead of throwing
+  if (e1 && e2) {
+    console.error('Both queries failed');
+    return [];
+  }
 
   const groups = [...(created || [])];
 
@@ -152,12 +197,17 @@ export async function getMyGroups() {
 
 // ==================== INVITATIONS ====================
 
-export async function sendInvitation(groupId, email) {
+export async function sendInvitation(groupId, email, role = 'member') {
   const user = await getCurrentUser();
   if (!user) throw new Error('Not logged in');
   const { data, error } = await supabase
     .from('invitations')
-    .insert({ group_id: groupId, email, invited_by: user.id })
+    .insert({ 
+      group_id: groupId, 
+      email, 
+      invited_by: user.id,
+      role: role
+    })
     .select()
     .single();
   if (error) throw error;

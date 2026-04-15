@@ -1,5 +1,5 @@
 // ==================== UTILITY FUNCTIONS ====================
-function formatCurrency(amount) {
+export function formatCurrency(amount) {
   return new Intl.NumberFormat('en-ZA', {
     style: 'currency',
     currency: 'ZAR',
@@ -7,12 +7,12 @@ function formatCurrency(amount) {
   }).format(amount);
 }
 
-function formatDate(dateString) {
+export function formatDate(dateString) {
   const options = { year: 'numeric', month: 'short', day: 'numeric' };
   return new Date(dateString).toLocaleDateString('en-ZA', options);
 }
 
-function showToast(message, type = 'success') {
+export function showToast(message, type = 'success') {
   const container = document.getElementById('toast-container');
   if (!container) return;
 

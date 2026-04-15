@@ -1,4 +1,4 @@
-// ==================== INVITE MEMBERS ====================
+// ==================== INVITE MEMBERS WITH ROLE ====================
 import { sendInvitation, getGroupInvitations, getMyGroups } from './supabase-client.js';
 import { formatDate, showToast } from './utils.js';
 
@@ -13,10 +13,13 @@ export async function initInviteMembers() {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const emailInput  = document.getElementById('invite-email');
+      const emailInput = document.getElementById('invite-email');
       const groupSelect = document.getElementById('invite-group');
-      const email       = emailInput.value.trim();
-      const groupId     = groupSelect ? groupSelect.value : null;
+      const roleSelect = document.getElementById('invite-role');
+      
+      const email = emailInput.value.trim();
+      const groupId = groupSelect ? groupSelect.value : null;
+      const role = roleSelect ? roleSelect.value : 'member';
 
       if (!email || !email.includes('@')) {
         showToast('Please enter a valid email address', 'error');
@@ -32,25 +35,24 @@ export async function initInviteMembers() {
       submitBtn.innerHTML = 'Sending...';
 
       try {
-        // 1. Save invitation record to Supabase
-        const invite = await sendInvitation(groupId, email);
+        // 1. Save invitation record to Supabase with the selected role
+        const invite = await sendInvitation(groupId, email, role); // <-- role added
 
         // 2. Trigger email via Supabase Edge Function (send-invite)
-        //    The edge function uses the invitation token to email the recipient.
-        //    Deploy the edge function from: backend/supabase/functions/send-invite/
         try {
           const { supabase } = await import('./supabase-client.js');
           await supabase.functions.invoke('send-invite', {
-            body: { invitationId: invite.id, email, groupId },
+            body: { invitationId: invite.id, email, groupId, role },
           });
-          showToast(`Invitation sent to ${email}`);
+          showToast(`Invitation sent to ${email} as ${role}`);
         } catch (fnErr) {
-          // Edge function not deployed yet — record saved, email not sent
           console.warn('send-invite edge function not available:', fnErr.message);
-          showToast(`Invitation recorded for ${email} (email delivery pending edge function setup)`, 'warning');
+          showToast(`Invitation recorded for ${email} (role: ${role}) — email pending`, 'warning');
         }
 
         emailInput.value = '';
+        // Optionally reset role to default
+        if (roleSelect) roleSelect.value = 'member';
         await renderInviteList(groupId);
       } catch (err) {
         console.error('sendInvitation error:', err);
@@ -106,6 +108,8 @@ async function renderInviteList(groupId) {
         <section>
           <p class="invite-email">${invite.email}</p>
           <small class="invite-date">Sent on ${formatDate(invite.created_at?.split('T')[0] || invite.sentAt)}</small>
+          <br/>
+          <small class="invite-role" style="color:var(--slate-500);">Role: <strong>${invite.role || 'member'}</strong></small>
         </section>
         <mark class="badge ${invite.status === 'accepted' ? 'badge-success' : 'badge-warning'}">
           ${invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
