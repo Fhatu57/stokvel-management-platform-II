@@ -6,7 +6,7 @@ let invites = [];
 let nextId = 1;
 
 // POST /invites — save a pending invite
-// Task #9
+
 router.post("/", async (req, res) => {
   const { email, name, role, group_id } = req.body;
 
