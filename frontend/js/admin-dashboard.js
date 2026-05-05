@@ -14,7 +14,7 @@ async function renderGroups() {
 
   groupsContainer.innerHTML = `<p style="padding:1.5rem;color:var(--slate-400);">Loading groups…</p>`;
 
-  let groups = [];
+  let groups   = [];
   let errorMsg = null;
 
   try {
@@ -34,7 +34,6 @@ async function renderGroups() {
     errorMsg = err.message;
   }
 
-  // Render stats
   if (statsContainer) {
     const totalMembers = groups.reduce((s, g) => s + g.members, 0);
     const totalSavings = groups.reduce((s, g) => s + g.totalSavings, 0);
@@ -74,7 +73,6 @@ async function renderGroups() {
     `;
   }
 
-  // Render groups or error/empty state
   if (errorMsg) {
     groupsContainer.innerHTML = `
       <aside class="alert alert-error" style="margin:1.5rem;">
@@ -136,13 +134,11 @@ async function renderMemberRolePanel() {
   if (!panel) return;
 
   try {
-    const { data: members, error: e1 } = await supabase
-      .from('profiles')
-      .select('id, full_name, email');
-
-    const { data: roles, error: e2 } = await supabase
-      .from('user_roles')
-      .select('user_id, role');
+    // Run both queries in parallel
+    const [{ data: members, error: e1 }, { data: roles, error: e2 }] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, email'),
+      supabase.from('user_roles').select('user_id, role'),
+    ]);
 
     if (e1) throw e1;
 

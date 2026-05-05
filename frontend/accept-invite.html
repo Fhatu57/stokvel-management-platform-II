@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accept Invitation - Stokvel Management</title>
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="components.css">
+</head>
+<body>
+  <main class="container" style="max-width: 500px; margin: 4rem auto; text-align: center;">
+    <div class="card" id="invite-status">
+      <h2>Processing your invitation...</h2>
+      <p>Please wait while we verify your invitation.</p>
+      <div class="loading-spinner"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase } from './js/supabase-client.js';
+    import { showToast } from './js/utils.js';
+
+    async function acceptInvitation() {
+      // Get token from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      
+      const statusDiv = document.getElementById('invite-status');
+      
+      if (!token) {
+        statusDiv.innerHTML = `
+          <h2>Invalid Invitation</h2>
+          <p>No invitation token provided. Please check your invitation link.</p>
+          <a href="index.html" class="btn btn-primary">Go to Login</a>
+        `;
+        return;
+      }
+      
+      try {
+        // Check if user is logged in
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          // Not logged in - store token and redirect to login
+          localStorage.setItem('pending_invite_token', token);
+          statusDiv.innerHTML = `
+            <h2>Please Log In</h2>
+            <p>You need to log in to accept this invitation.</p>
+            <a href="index.html" class="btn btn-primary">Go to Login</a>
+          `;
+          return;
+        }
+        
+        // User is logged in, accept the invitation
+        statusDiv.innerHTML = `
+          <h2>Accepting Invitation...</h2>
+          <p>Adding you to the stokvel group...</p>
+        `;
+        
+        const result = await supabase.rpc('accept_invitation', { _token: token });
+        
+        if (result.error) throw new Error(result.error.message);
+
+        // Role comes back in the RPC result — no second query needed
+        // (a second query would fail because RLS only allows admins/invitee by email)
+        const role = result.data?.role || 'member';
+        
+        statusDiv.innerHTML = `
+          <h2>✓ Invitation Accepted!</h2>
+          <p>You have been added to the stokvel group as a <strong>${role}</strong>.</p>
+          <a href="${role === 'admin' ? 'admin-dashboard.html' : role === 'treasurer' ? 'treasurer-dashboard.html' : 'member-dashboard.html'}" class="btn btn-primary">
+            Go to Dashboard
+          </a>
+        `;
+        
+        showToast(`Successfully joined as ${role}!`, 'success');
+        
+      } catch (err) {
+        console.error('Accept invitation error:', err);
+        statusDiv.innerHTML = `
+          <h2>Invitation Failed</h2>
+          <p>${err.message || 'This invitation may be invalid or expired.'}</p>
+          <a href="index.html" class="btn btn-primary">Go to Login</a>
+        `;
+      }
+    }
+    
+    acceptInvitation();
+  </script>
+</body>
+</html>

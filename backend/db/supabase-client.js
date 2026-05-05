@@ -146,28 +146,32 @@ export async function acceptInvitation(token) {
 // ==================== CONTRIBUTIONS ====================
 
 /** Get my contribution history */
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Fetch contributions with group name
 export async function getMyContributions() {
   const { data, error } = await supabase
     .from('contributions')
-    .select('*, groups(name)')
-    .order('due_date', { ascending: false });
-  if (error) throw error;
-  return data;
-}
-
-/** Record a new contribution (admin/treasurer) */
-export async function recordContribution({ groupId, userId, amount, dueDate, status }) {
-  const { data, error } = await supabase
-    .from('contributions')
-    .insert({
-      group_id: groupId,
-      user_id: userId,
+    .select(`
+      id,
       amount,
-      due_date: dueDate,
-      status: status || 'pending',
-    })
-    .select()
-    .single();
-  if (error) throw error;
+      status,
+      due_date,
+      groups (
+        name
+      )
+    `)
+    .order('due_date', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+
   return data;
 }
