@@ -1,5 +1,7 @@
 // ============================================================
 // supabase-client.js
+// Central data layer — all Supabase queries live here.
+// Import from this file; never call supabase directly in UI code.
 // ============================================================
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
@@ -9,7 +11,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ==================== AUTH ====================
+// ============================================================
+// AUTH
+// ============================================================
 
 export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -33,13 +37,12 @@ export async function getCurrentUser() {
       if (parsed?.id) return { id: parsed.id, email: parsed.email };
     }
   } catch (_) {}
-
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) throw error;
     return user;
   } catch (err) {
-    console.warn('getCurrentUser: could not get Supabase session:', err.message);
+    console.warn('getCurrentUser:', err.message);
     return null;
   }
 }
@@ -58,7 +61,6 @@ export function onAuthStateChange(callback) {
         const profile = await getProfile(session.user.id);
         callback({ event, session, role, profile });
       } catch (err) {
-        console.error('onAuthStateChange error:', err.message);
         callback({ event, session, role: 'member', profile: null });
       }
     } else if (event === 'SIGNED_OUT') {
@@ -67,28 +69,27 @@ export function onAuthStateChange(callback) {
   });
 }
 
-// ==================== PROFILES ====================
+// ============================================================
+// PROFILES
+// ============================================================
 
 export async function getProfile(userId) {
   const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
+    .from('profiles').select('*').eq('id', userId).single();
   if (error) throw error;
   return data;
 }
 
-// ==================== GROUPS ====================
+// ============================================================
+// GROUPS
+// ============================================================
 
 export async function createGroup(groupData) {
-  console.log('--- createGroup: starting ---');
-
   const user = await getCurrentUser();
-  if (!user?.id) throw new Error('No authenticated user found. Please log in again.');
+  if (!user?.id) throw new Error('No authenticated user found.');
 
   const cleanData = {
-    name:                String(groupData.name || 'Unnamed Group').trim(),
+    name:                String(groupData.name || '').trim(),
     description:         String(groupData.description || '').trim(),
     contribution_amount: Number(groupData.contributionAmount) || 0,
     frequency:           String(groupData.frequency || 'monthly').toLowerCase(),
@@ -96,126 +97,266 @@ export async function createGroup(groupData) {
     created_by:          user.id,
   };
 
-  console.log('createGroup: sending to Supabase:', cleanData);
-
   const { data, error } = await supabase
-    .from('groups')
-    .insert([cleanData])
-    .select()
-    .single();
+    .from('groups').insert([cleanData]).select().single();
+  if (error) throw error;
 
-  if (error) {
-    console.error('createGroup: DB error:', error.message);
-    throw error;
-  }
-
-  // Auto-add creator as a group member
-  const { error: memberError } = await supabase
-    .from('group_members')
-    .insert({ group_id: data.id, user_id: user.id });
-
-  if (memberError) console.warn('Could not add creator to group_members:', memberError.message);
-
-  console.log('createGroup: success:', data);
+  await supabase.from('group_members').insert({ group_id: data.id, user_id: user.id });
   return data;
 }
 
 export async function getMyGroups() {
   const user = await getCurrentUser();
   if (!user) return [];
-
   const { data, error } = await supabase
     .from('group_members')
     .select('groups(*, group_members(user_id))')
     .eq('user_id', user.id);
-
-  if (error) {
-    console.error('getMyGroups error:', error.message);
-    throw error;
-  }
-
-  return (data ?? [])
-    .map(row => row.groups)
-    .filter(Boolean);
+  if (error) throw error;
+  return (data ?? []).map(row => row.groups).filter(Boolean);
 }
 
-// ==================== INVITATIONS ====================
+// ============================================================
+// INVITATIONS
+// ============================================================
 
-/**
- * Save an invitation to Supabase with a unique token, role and status.
- * The token is used to build the accept link that gets emailed to the invitee.
- */
 export async function sendInvitation(groupId, email, role = 'member') {
   const user = await getCurrentUser();
   if (!user) throw new Error('Not logged in');
-
   const token = crypto.randomUUID();
-
-  const { data, error } = await supabase
-    .from('invitations')
-    .insert({
-      group_id:   groupId,
-      email:      email.toLowerCase().trim(),
-      invited_by: user.id,
-      status:     'pending',
-      token,
-      role,
-    })
-    .select()
-    .single();
-
+  const { data, error } = await supabase.from('invitations').insert({
+    group_id: groupId, email: email.toLowerCase().trim(),
+    invited_by: user.id, status: 'pending', token, role,
+  }).select().single();
   if (error) throw error;
-  return data; // data.token is used by invites.js to build the accept link
+  return data;
 }
 
 export async function getGroupInvitations(groupId) {
   const { data, error } = await supabase
-    .from('invitations')
-    .select('*')
-    .eq('group_id', groupId)
+    .from('invitations').select('*').eq('group_id', groupId)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data ?? [];
 }
 
-/**
- * Called after login with a pending invite token,
- * or directly from accept-invite.html when already logged in.
- * Requires an `accept_invitation` stored procedure in Supabase.
- */
 export async function acceptInvitation(token) {
   const { data, error } = await supabase.rpc('accept_invitation', { _token: token });
   if (error) throw error;
   return data;
 }
 
-// ==================== CONTRIBUTIONS ====================
+// ============================================================
+// CONTRIBUTIONS
+// ============================================================
 
+/** Member: own contributions */
 export async function getMyContributions() {
   const user = await getCurrentUser();
   if (!user) return [];
+  const { data, error } = await supabase
+    .from('contributions').select('*, groups(name)')
+    .eq('user_id', user.id).order('due_date', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
 
+/** Treasurer/Admin: all contributions across managed groups with member names */
+export async function getAllContributions() {
+  const myGroups = await getMyGroups();
+  if (!myGroups.length) return [];
+  const groupIds = myGroups.map(g => g.id);
   const { data, error } = await supabase
     .from('contributions')
-    .select('*, groups(name)')
-    .eq('user_id', user.id)
+    .select('*, groups(name), profiles(full_name, email)')
+    .in('group_id', groupIds)
     .order('due_date', { ascending: false });
   if (error) throw error;
   return data ?? [];
 }
 
-export async function recordContribution({ groupId, userId, amount, dueDate, status }) {
+/** Treasurer/Admin: update contribution status */
+export async function updateContributionStatus(id, status) {
   const { data, error } = await supabase
     .from('contributions')
-    .insert({
-      group_id: groupId,
-      user_id:  userId,
-      amount:   Number(amount),
-      due_date: dueDate,
-      status:   status || 'pending',
-    })
-    .select()
+    .update({ status, paid_at: status === 'completed' ? new Date().toISOString() : null })
+    .eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+/** Treasurer/Admin: record a new contribution entry */
+export async function recordContribution({ groupId, userId, amount, dueDate, status }) {
+  const { data, error } = await supabase.from('contributions').insert({
+    group_id: groupId, user_id: userId,
+    amount: Number(amount), due_date: dueDate, status: status || 'pending',
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// ============================================================
+// PAYOUT SCHEDULE
+// ============================================================
+
+export async function getPayoutSchedule(groupId) {
+  const { data, error } = await supabase
+    .from('payout_schedule')
+    .select('*, profiles(full_name, email, avatar_url)')
+    .eq('group_id', groupId)
+    .order('position', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Replace entire payout schedule for a group */
+export async function savePayoutSchedule(groupId, orderedUserIds, contributionAmount, memberCount) {
+  await supabase.from('payout_schedule').delete().eq('group_id', groupId);
+  if (!orderedUserIds.length) return [];
+
+  const today = new Date();
+  const rows = orderedUserIds.map((userId, i) => {
+    const d = new Date(today);
+    d.setMonth(d.getMonth() + i + 1);
+    return {
+      group_id: groupId, user_id: userId, position: i + 1,
+      scheduled_date: d.toISOString().split('T')[0],
+      status: 'pending',
+      amount: contributionAmount * (memberCount || orderedUserIds.length),
+    };
+  });
+
+  const { data, error } = await supabase.from('payout_schedule').insert(rows).select();
+  if (error) throw error;
+  return data;
+}
+
+export async function markPayoutPaid(payoutId) {
+  const { data, error } = await supabase
+    .from('payout_schedule')
+    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    .eq('id', payoutId).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// ============================================================
+// MEETINGS
+// ============================================================
+
+export async function getMyMeetings() {
+  const myGroups = await getMyGroups();
+  if (!myGroups.length) return [];
+  const groupIds = myGroups.map(g => g.id);
+  const { data, error } = await supabase
+    .from('meetings')
+    .select('*, groups(name), profiles(full_name)')
+    .in('group_id', groupIds)
+    .order('scheduled_at', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getGroupMeetings(groupId) {
+  const { data, error } = await supabase
+    .from('meetings')
+    .select('*, profiles(full_name)')
+    .eq('group_id', groupId)
+    .order('scheduled_at', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createMeeting({ groupId, title, scheduledAt, location, agenda }) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Not logged in');
+  const { data, error } = await supabase.from('meetings').insert({
+    group_id: groupId, title: title.trim(),
+    scheduled_at: scheduledAt,
+    location: location?.trim() || null,
+    agenda: agenda?.trim() || null,
+    created_by: user.id,
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateMeetingMinutes(meetingId, minutes) {
+  const { data, error } = await supabase
+    .from('meetings')
+    .update({ minutes: minutes.trim(), updated_at: new Date().toISOString() })
+    .eq('id', meetingId).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteMeeting(meetingId) {
+  const { error } = await supabase.from('meetings').delete().eq('id', meetingId);
+  if (error) throw error;
+}
+
+// ============================================================
+// INTEREST RATES — SA Data Integration
+// Source: South African Reserve Bank (SARB) — resbank.co.za
+// The interest_rates table is seeded with current SARB rates and
+// can be refreshed via a Supabase Edge Function on a schedule.
+// SARB is the authoritative public source for SA repo and prime rates.
+// ============================================================
+
+export async function getLatestInterestRates() {
+  const { data, error } = await supabase
+    .from('interest_rates')
+    .select('*')
+    .order('fetched_at', { ascending: false })
+    .limit(1)
     .single();
   if (error) throw error;
   return data;
+}
+
+// ============================================================
+// ANALYTICS
+// ============================================================
+
+/** Contribution compliance per member for a group */
+export async function getContributionCompliance(groupId) {
+  const { data, error } = await supabase
+    .from('contributions')
+    .select('user_id, status, profiles(full_name)')
+    .eq('group_id', groupId);
+  if (error) throw error;
+
+  const map = {};
+  for (const row of data ?? []) {
+    const uid = row.user_id;
+    if (!map[uid]) map[uid] = { name: row.profiles?.full_name || 'Unknown', total: 0, completed: 0, late: 0, missed: 0 };
+    map[uid].total++;
+    if (row.status === 'completed') map[uid].completed++;
+    else if (row.status === 'late')   map[uid].late++;
+    else if (row.status === 'missed') map[uid].missed++;
+  }
+
+  return Object.values(map).map(m => ({
+    ...m,
+    compliance_pct: m.total > 0 ? Math.round((m.completed / m.total) * 100) : 0,
+  }));
+}
+
+/** Total contributions collected per month for a group */
+export async function getContributionsByMonth(groupId) {
+  const { data, error } = await supabase
+    .from('contributions')
+    .select('amount, paid_at')
+    .eq('group_id', groupId)
+    .eq('status', 'completed')
+    .not('paid_at', 'is', null)
+    .order('paid_at', { ascending: true });
+  if (error) throw error;
+
+  const monthMap = {};
+  for (const row of data ?? []) {
+    const month = row.paid_at.slice(0, 7);
+    monthMap[month] = (monthMap[month] || 0) + Number(row.amount);
+  }
+  return Object.entries(monthMap).map(([month, total]) => ({ month, total_amount: total }));
 }
