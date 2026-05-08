@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics - Stokvel Management</title>
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="layout.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="pages.css">
+  <!-- Chart.js from CDN for report charts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+  <section class="app-layout" data-testid="analytics-page">
+
+    <aside class="sidebar" data-testid="sidebar">
+      <header class="sidebar-logo">
+        <figure class="logo-circles" style="width:36px;height:36px;">
+          <i class="logo-circle logo-circle-green" style="width:24px;height:24px;"></i>
+          <i class="logo-circle logo-circle-blue"  style="width:24px;height:24px;"></i>
+        </figure>
+        <h2>Stokvel</h2>
+      </header>
+      <nav class="sidebar-nav">
+        <section class="nav-section">
+          <p class="nav-section-title">Main Menu</p>
+        </section>
+      </nav>
+      <footer class="sidebar-user" data-testid="user-info">
+        <abbr class="user-avatar" title="User initials">?</abbr>
+        <section class="user-info">
+          <strong class="user-name">Loading…</strong>
+          <em class="user-role">Member</em>
+        </section>
+        <button class="btn btn-ghost btn-sm" onclick="logout()" data-testid="logout-btn" title="Logout">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </footer>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <h1>Analytics & Reports</h1>
+        <p>Financial insights for your stokvel groups.</p>
+      </header>
+
+      <!-- Group selector -->
+      <div style="margin-bottom:1.5rem;max-width:320px;">
+        <label class="form-label" for="analytics-group-select">Select group</label>
+        <select id="analytics-group-select" class="form-input">
+          <option>Loading…</option>
+        </select>
+      </div>
+
+      <div id="analytics-content">
+
+        <!-- Report 1: Contribution compliance -->
+        <article class="card" style="margin-bottom:1.5rem;" data-testid="report-compliance">
+          <header class="card-header">
+            <h3 class="card-title">Report 1 — Contribution compliance per member</h3>
+            <button class="btn btn-outline btn-sm" onclick="window.exportComplianceCSV()">Export CSV</button>
+          </header>
+          <div style="position:relative;height:300px;">
+            <canvas id="compliance-chart"></canvas>
+            <p id="compliance-no-data" style="display:none;color:var(--slate-400);text-align:center;padding:4rem 0;">
+              No contribution data yet for this group.
+            </p>
+          </div>
+        </article>
+
+        <!-- Report 2: Monthly collections -->
+        <article class="card" style="margin-bottom:1.5rem;" data-testid="report-monthly">
+          <header class="card-header">
+            <h3 class="card-title">Report 2 — Collections by month</h3>
+            <button class="btn btn-outline btn-sm" onclick="window.exportMonthlyCSV()">Export CSV</button>
+          </header>
+          <div style="position:relative;height:300px;">
+            <canvas id="monthly-chart"></canvas>
+            <p id="monthly-no-data" style="display:none;color:var(--slate-400);text-align:center;padding:4rem 0;">
+              No completed contributions recorded yet.
+            </p>
+          </div>
+        </article>
+
+        <!-- Report 3: Payout schedule summary (custom view) -->
+        <article class="card" data-testid="report-payouts">
+          <header class="card-header">
+            <h3 class="card-title">Report 3 — Payout schedule summary</h3>
+            <button class="btn btn-outline btn-sm" onclick="window.exportPayoutCSV()">Export CSV</button>
+          </header>
+          <div id="payout-report-container" style="padding:.5rem 0;">
+            <p style="color:var(--slate-400);">Loading…</p>
+          </div>
+        </article>
+
+      </div>
+    </main>
+  </section>
+
+  <output id="toast-container" class="toast-container"></output>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
