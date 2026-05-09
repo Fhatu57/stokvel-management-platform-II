@@ -2,9 +2,9 @@ name: Stokvel CI
 
 on:
   push:
-    branches: ["main", "dev"]
+    branches: [ "main", "dev" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
 
 jobs:
   build-and-test:
@@ -18,9 +18,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
+          cache-dependency-path: backend/package.json
 
-      # BACKEND
-      - name: Install backend dependencies
+      - name: Install dependencies
         working-directory: backend
         run: npm install
 
@@ -28,7 +29,6 @@ jobs:
         working-directory: backend
         run: npm test
 
-      # FRONTEND
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm install
@@ -37,7 +37,6 @@ jobs:
         working-directory: frontend
         run: npm test
 
-      # Upload backend coverage
       - name: Upload backend coverage
         uses: codecov/codecov-action@v5
         with:
