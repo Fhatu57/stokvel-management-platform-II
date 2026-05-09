@@ -1,5 +1,51 @@
 {
   "name": "frontend",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "scripts": {
+    "test": "jest --coverage"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "transform": {
+      "^.+\\.js$": "babel-jest"
+    },
+    "collectCoverageFrom": [
+  "js/admin-dashboard.js",
+  "js/analytics.js",
+  "js/auth.js",
+  "js/contributions.js",
+  "js/dashboards.js",
+  "js/groups.js",
+  "js/interest-rates.js",
+  "js/invites.js",
+  "js/meetings.js",
+  "js/payouts.js",
+  "js/utils.js"
+
+],
+    "moduleNameMapper": {
+      "^https://.*": "<rootDir>/js/__mocks__/esm.js",
+      "^./supabase-client.js$": "<rootDir>/js/__mocks__/supabase-client.js",
+      "^\\.\\./supabase-client\\.js$": "<rootDir>/js/__mocks__/supabase-client.js",
+      "^./auth.js$": "<rootDir>/js/__mocks__/esm.js",
+      "^./admin-dashboard.js$": "<rootDir>/js/__mocks__/esm.js",
+      "^./dashboards.js$": "<rootDir>/js/__mocks__/esm.js",
+      "^./groups.js$": "<rootDir>/js/__mocks__/esm.js",
+      "^./invites.js$": "<rootDir>/js/__mocks__/esm.js",
+      "^./meetings.js$": "<rootDir>/js/__mocks__/esm.js",
+      "^./payouts.js$": "<rootDir>/js/__mocks__/esm.js",
+      "^./analytics.js$": "<rootDir>/js/__mocks__/esm.js",
+      "^./contributions.js$": "<rootDir>/js/__mocks__/esm.js",
+      "^./interest-rates.js$": "<rootDir>/js/__mocks__/esm.js"
+    },
+    "transformIgnorePatterns": []
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.3",
+    "babel-jest": "^30.3.0",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0"
+  }
 }
