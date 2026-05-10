@@ -7,6 +7,7 @@
   },
   "jest": {
     "testEnvironment": "jsdom",
+    "coverageDirectory": "<rootDir>/coverage",
     "coverageReporters": ["text", "lcov"],
     "transform": {
       "^.+\\.js$": "babel-jest"
