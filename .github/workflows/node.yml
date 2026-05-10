@@ -2,9 +2,9 @@ name: Stokvel CI
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: ["main", "dev"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build-and-test:
@@ -19,6 +19,7 @@ jobs:
         with:
           node-version: "20"
 
+      # Backend
       - name: Install backend dependencies
         working-directory: backend
         run: npm install
@@ -27,26 +28,36 @@ jobs:
         working-directory: backend
         run: npm test
 
+      # Frontend
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm install
 
       - name: Run frontend tests
         working-directory: frontend
-        run: npm test || true
+        run: npm test
 
+      # Debug: prove coverage exists
+      - name: Show backend coverage files
+        run: ls -R backend/coverage
+
+      - name: Show frontend coverage files
+        run: ls -R frontend/coverage
+
+      # Upload backend coverage
       - name: Upload backend coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./backend/coverage/lcov.info
+          directory: ./backend/coverage
           flags: backend
-          fail_ci_if_error: false
+          fail_ci_if_error: true
 
+      # Upload frontend coverage
       - name: Upload frontend coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./frontend/coverage/lcov.info
+          directory: ./frontend/coverage
           flags: frontend
-          fail_ci_if_error: false
+          fail_ci_if_error: true
