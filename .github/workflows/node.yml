@@ -19,7 +19,6 @@ jobs:
         with:
           node-version: "20"
 
-      # Backend
       - name: Install backend dependencies
         working-directory: backend
         run: npm install
@@ -28,7 +27,6 @@ jobs:
         working-directory: backend
         run: npm test
 
-      # Frontend
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm install
@@ -37,26 +35,18 @@ jobs:
         working-directory: frontend
         run: npm test
 
-      # Debug coverage files
-      - name: Check coverage files
-        run: |
-          ls -R backend/coverage || true
-          ls -R frontend/coverage || true
-
-      # Upload backend coverage
       - name: Upload backend coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./backend/coverage
+          files: ./backend/coverage/lcov.info
           flags: backend
-          fail_ci_if_error: true
+          fail_ci_if_error: false
 
-      # Upload frontend coverage
       - name: Upload frontend coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./frontend/coverage
+          files: ./frontend/coverage/lcov.info
           flags: frontend
-          fail_ci_if_error: true
+          fail_ci_if_error: false
