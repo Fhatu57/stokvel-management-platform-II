@@ -63,7 +63,10 @@
         <article class="card" style="margin-bottom:1.5rem;" data-testid="report-compliance">
           <header class="card-header">
             <h3 class="card-title">Report 1 — Contribution compliance per member</h3>
-            <button class="btn btn-outline btn-sm" onclick="window.exportComplianceCSV()">Export CSV</button>
+            <div style="display:flex;gap:.5rem;">
+              <button class="btn btn-outline btn-sm" onclick="window.exportComplianceCSV()">CSV</button>
+              <button class="btn btn-outline btn-sm" onclick="window.exportCompliancePDF()">PDF</button>
+            </div>
           </header>
           <div style="position:relative;height:300px;">
             <canvas id="compliance-chart"></canvas>
@@ -77,7 +80,10 @@
         <article class="card" style="margin-bottom:1.5rem;" data-testid="report-monthly">
           <header class="card-header">
             <h3 class="card-title">Report 2 — Collections by month</h3>
-            <button class="btn btn-outline btn-sm" onclick="window.exportMonthlyCSV()">Export CSV</button>
+            <div style="display:flex;gap:.5rem;">
+              <button class="btn btn-outline btn-sm" onclick="window.exportMonthlyCSV()">CSV</button>
+              <button class="btn btn-outline btn-sm" onclick="window.exportMonthlyPDF()">PDF</button>
+            </div>
           </header>
           <div style="position:relative;height:300px;">
             <canvas id="monthly-chart"></canvas>
@@ -91,7 +97,10 @@
         <article class="card" data-testid="report-payouts">
           <header class="card-header">
             <h3 class="card-title">Report 3 — Payout schedule summary</h3>
-            <button class="btn btn-outline btn-sm" onclick="window.exportPayoutCSV()">Export CSV</button>
+            <div style="display:flex;gap:.5rem;">
+              <button class="btn btn-outline btn-sm" onclick="window.exportPayoutCSV()">CSV</button>
+              <button class="btn btn-outline btn-sm" onclick="window.exportPayoutPDF()">PDF</button>
+            </div>
           </header>
           <div id="payout-report-container" style="padding:.5rem 0;">
             <p style="color:var(--slate-400);">Loading…</p>
