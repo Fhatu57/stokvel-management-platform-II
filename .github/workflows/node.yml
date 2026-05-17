@@ -38,14 +38,7 @@ jobs:
       - name: Fix lcov paths (Windows-style backslashes → forward slashes)
         run: sed -i 's/\\/\//g' frontend/coverage/lcov.info
 
-      - name: Upload backend coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./backend/coverage/lcov.info
-          flags: backend
-          disable_search: true
-          fail_ci_if_error: false
+  
 
       - name: Upload frontend coverage
         uses: codecov/codecov-action@v5
