@@ -180,7 +180,7 @@ export async function updateContributionStatus(id, status) {
   const { data, error } = await supabase
     .from('contributions')
     .update({ status, paid_at: status === 'completed' ? new Date().toISOString() : null })
-    .eq('id', id).select().single();
+    .eq('id', id).select();
   if (error) throw error;
   return data;
 }
