@@ -12,6 +12,8 @@ import { initContributions }                from './contributions.js';
 import { initMeetings }                     from './meetings.js';
 import { initPayouts }                      from './payouts.js';
 import { initAnalytics }                    from './analytics.js';
+import { initProfile }                      from './profile.js';
+import { initNotifications }                from './notifications.js';
 
 window.logout = logout;
 
@@ -66,6 +68,14 @@ document.addEventListener('DOMContentLoaded', () => {
     case 'analytics.html':
     case 'analytics':
       initAnalytics();
+      break;
+    case 'profile.html':
+    case 'profile':
+      initProfile();
+      break;
+    case 'notifications.html':
+    case 'notifications':
+      initNotifications();
       break;
   }
 });
