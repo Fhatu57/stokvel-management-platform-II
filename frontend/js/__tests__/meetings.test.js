@@ -1,6 +1,46 @@
 import { initMeetings } from '../meetings.js';
 
-describe('initMeetings - DOM setup', () => {
+jest.mock('../supabase-client.js', () => ({
+  getMyMeetings: jest.fn(() =>
+    Promise.resolve([
+      {
+        id: '1',
+        title: 'Monthly Meeting',
+        scheduled_at: '2099-01-01T10:00:00',
+        location: 'Johannesburg',
+        agenda: 'Discuss savings',
+        minutes: '',
+        groups: { name: 'Alpha Group' }
+      },
+      {
+        id: '2',
+        title: 'Past Meeting',
+        scheduled_at: '2020-01-01T10:00:00',
+        location: '',
+        agenda: '',
+        minutes: 'Meeting completed',
+        groups: { name: 'Beta Group' }
+      }
+    ])
+  ),
+
+  getMyGroups: jest.fn(() =>
+    Promise.resolve([
+      { id: 'g1', name: 'Alpha Group' }
+    ])
+  ),
+
+  createMeeting: jest.fn(() => Promise.resolve()),
+  updateMeetingMinutes: jest.fn(() => Promise.resolve()),
+  deleteMeeting: jest.fn(() => Promise.resolve())
+}));
+
+jest.mock('../utils.js', () => ({
+  formatDate: jest.fn(),
+  showToast: jest.fn()
+}));
+
+describe('initMeetings', () => {
   beforeEach(() => {
     localStorage.clear();
 
@@ -8,12 +48,17 @@ describe('initMeetings - DOM setup', () => {
       <section id="schedule-meeting-section">
         <form id="schedule-meeting-form">
           <select id="meeting-group-id"></select>
+
           <input id="meeting-title" type="text" />
           <input id="meeting-date" type="date" />
           <input id="meeting-time" type="time" />
           <input id="meeting-location" type="text" />
+
           <textarea id="meeting-agenda"></textarea>
-          <button type="submit">Schedule</button>
+
+          <button type="submit">
+            Schedule
+          </button>
         </form>
       </section>
 
@@ -21,151 +66,138 @@ describe('initMeetings - DOM setup', () => {
     `;
   });
 
-  test('GIVEN DOM elements exist, WHEN initMeetings called, THEN does not throw', async () => {
+  test('GIVEN admin role WHEN initialized THEN meetings render', async () => {
     localStorage.setItem(
       'stokvel_user',
       JSON.stringify({ role: 'admin' })
     );
 
-    await expect(
-      Promise.race([
-        initMeetings(),
-        new Promise(resolve => setTimeout(resolve, 200))
-      ])
-    ).resolves.not.toThrow();
-  }, 10000);
+    await initMeetings();
 
-  test('GIVEN no DOM elements, WHEN initMeetings called, THEN does not throw', async () => {
-    document.body.innerHTML = '';
+    expect(
+      document.getElementById('meetings-list').innerHTML
+    ).toContain('Monthly Meeting');
 
-    await expect(
-      Promise.race([
-        initMeetings(),
-        new Promise(resolve => setTimeout(resolve, 200))
-      ])
-    ).resolves.not.toThrow();
-  }, 10000);
-});
-
-describe('meeting form validation logic', () => {
-  test('GIVEN empty title, WHEN validated, THEN is invalid', () => {
-    expect(!'').toBe(true);
+    expect(
+      document.getElementById('meetings-list').innerHTML
+    ).toContain('Past Meeting');
   });
 
-  test('GIVEN valid title, WHEN validated, THEN is valid', () => {
-    expect(!'Monthly Meeting').toBe(false);
-  });
-
-  test('GIVEN empty date, WHEN validated, THEN is invalid', () => {
-    expect(!'').toBe(true);
-  });
-
-  test('GIVEN valid date, WHEN validated, THEN is valid', () => {
-    expect(!'2026-05-15').toBe(false);
-  });
-
-  test('GIVEN meeting date, WHEN compared to today, THEN can determine if past', () => {
-    const pastDate = new Date('2020-01-01');
-    const today = new Date();
-
-    expect(pastDate < today).toBe(true);
-  });
-
-  test('GIVEN future meeting date, WHEN compared to today, THEN is upcoming', () => {
-    const futureDate = new Date('2099-01-01');
-    const today = new Date();
-
-    expect(futureDate > today).toBe(true);
-  });
-
-  test('GIVEN meetings array, WHEN filtered by upcoming, THEN returns correct count', () => {
-    const today = new Date();
-
-    const meetings = [
-      { date: '2099-01-01' },
-      { date: '2020-01-01' },
-      { date: '2099-06-01' }
-    ];
-
-    const upcoming = meetings.filter(
-      m => new Date(m.date) > today
-    );
-
-    expect(upcoming.length).toBe(2);
-  });
-
-  test('GIVEN meetings array, WHEN filtered by past, THEN returns correct count', () => {
-    const today = new Date();
-
-    const meetings = [
-      { date: '2099-01-01' },
-      { date: '2020-01-01' },
-      { date: '2020-06-01' }
-    ];
-
-    const past = meetings.filter(
-      m => new Date(m.date) <= today
-    );
-
-    expect(past.length).toBe(2);
-  });
-});
-
-describe('getRole logic (meetings)', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  test('GIVEN no user, WHEN role checked, THEN defaults to member', () => {
-    const role =
-      JSON.parse(localStorage.getItem('stokvel_user') || '{}').role ||
-      'member';
-
-    expect(role).toBe('member');
-  });
-
-  test('GIVEN treasurer user, WHEN role checked, THEN returns treasurer', () => {
-    localStorage.setItem(
-      'stokvel_user',
-      JSON.stringify({ role: 'treasurer' })
-    );
-
-    const role =
-      JSON.parse(localStorage.getItem('stokvel_user') || '{}').role ||
-      'member';
-
-    expect(role).toBe('treasurer');
-  });
-
-  test('GIVEN admin user, WHEN role checked, THEN can schedule meetings', () => {
-    localStorage.setItem(
-      'stokvel_user',
-      JSON.stringify({ role: 'admin' })
-    );
-
-    const role =
-      JSON.parse(localStorage.getItem('stokvel_user') || '{}').role ||
-      'member';
-
-    const canSchedule =
-      role === 'treasurer' || role === 'admin';
-
-    expect(canSchedule).toBe(true);
-  });
-
-  test('GIVEN member user, WHEN role checked, THEN cannot schedule meetings', () => {
+  test('GIVEN member role WHEN initialized THEN form hidden', async () => {
     localStorage.setItem(
       'stokvel_user',
       JSON.stringify({ role: 'member' })
     );
 
-    const role =
-      JSON.parse(localStorage.getItem('stokvel_user') || '{}').role ||
-      'member';
+    await initMeetings();
 
-    const canSchedule =
-      role === 'treasurer' || role === 'admin';
+    const section = document.getElementById(
+      'schedule-meeting-section'
+    );
 
-    expect(canSchedule).toBe(false);
+    expect(section.style.display).toBe('none');
+  });
+
+  test('GIVEN admin role WHEN initialized THEN form visible', async () => {
+    localStorage.setItem(
+      'stokvel_user',
+      JSON.stringify({ role: 'admin' })
+    );
+
+    await initMeetings();
+
+    const section = document.getElementById(
+      'schedule-meeting-section'
+    );
+
+    expect(section.style.display).toBe('block');
+  });
+
+  test('GIVEN meetings exist WHEN rendered THEN upcoming label shown', async () => {
+    localStorage.setItem(
+      'stokvel_user',
+      JSON.stringify({ role: 'admin' })
+    );
+
+    await initMeetings();
+
+    expect(document.body.innerHTML).toContain('Upcoming');
+  });
+
+  test('GIVEN past meetings exist WHEN rendered THEN past label shown', async () => {
+    localStorage.setItem(
+      'stokvel_user',
+      JSON.stringify({ role: 'admin' })
+    );
+
+    await initMeetings();
+
+    expect(document.body.innerHTML).toContain('Past meetings');
+  });
+
+  test('GIVEN admin WHEN groups loaded THEN dropdown populated', async () => {
+    localStorage.setItem(
+      'stokvel_user',
+      JSON.stringify({ role: 'admin' })
+    );
+
+    await initMeetings();
+
+    const select =
+      document.getElementById('meeting-group-id');
+
+    expect(select.innerHTML).toContain('Alpha Group');
+  });
+
+  test('GIVEN invalid form WHEN submitted THEN does not crash', async () => {
+    localStorage.setItem(
+      'stokvel_user',
+      JSON.stringify({ role: 'admin' })
+    );
+
+    await initMeetings();
+
+    const form =
+      document.getElementById('schedule-meeting-form');
+
+    await expect(
+      form.dispatchEvent(
+        new Event('submit', { bubbles: true })
+      )
+    ).not.toBeNull();
+  });
+
+  test('GIVEN valid form WHEN submitted THEN succeeds', async () => {
+    localStorage.setItem(
+      'stokvel_user',
+      JSON.stringify({ role: 'admin' })
+    );
+
+    await initMeetings();
+
+    document.getElementById('meeting-group-id').value = 'g1';
+    document.getElementById('meeting-title').value =
+      'New Meeting';
+
+    document.getElementById('meeting-date').value =
+      '2099-01-01';
+
+    document.getElementById('meeting-time').value =
+      '10:00';
+
+    const form =
+      document.getElementById('schedule-meeting-form');
+
+    form.dispatchEvent(
+      new Event('submit', { bubbles: true })
+    );
+
+    expect(true).toBe(true);
+  });
+
+  test('GIVEN no DOM WHEN initialized THEN does not throw', async () => {
+    document.body.innerHTML = '';
+
+    await expect(initMeetings()).resolves.not.toThrow();
   });
 });

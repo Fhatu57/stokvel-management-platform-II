@@ -1,77 +1,139 @@
 import { initDashboard } from '../admin-dashboard.js';
 
-describe('initDashboard - DOM setup', () => {
+jest.mock('../supabase-client.js', () => ({
+  getMyGroups: jest.fn(),
+  supabase: {
+    from: jest.fn()
+  }
+}));
+
+import { getMyGroups, supabase } from '../supabase-client.js';
+
+describe('admin-dashboard rendering', () => {
+
   beforeEach(() => {
-    localStorage.clear();
-    localStorage.setItem('stokvel_user', JSON.stringify({ role: 'admin', name: 'Thabo' }));
     document.body.innerHTML = `
-      <section id="stats-grid"></section>
       <section id="groups-grid"></section>
+      <section id="stats-grid"></section>
+      <section id="role-management-panel"></section>
     `;
+
+    localStorage.setItem(
+      'stokvel_user',
+      JSON.stringify({ role: 'admin' })
+    );
   });
 
-  test('GIVEN DOM exists, WHEN initDashboard called, THEN does not throw', async () => {
-    await expect(initDashboard()).resolves.not.toThrow();
+  test('GIVEN no groups, WHEN dashboard loads, THEN empty state is shown', async () => {
+
+    getMyGroups.mockResolvedValue([]);
+
+    supabase.from.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        data: [],
+        error: null
+      })
+    });
+
+    await initDashboard();
+
+    expect(
+      document.getElementById('groups-grid').innerHTML
+    ).toContain('No groups yet');
   });
 
-  test('GIVEN no DOM, WHEN initDashboard called, THEN does not throw', async () => {
-    document.body.innerHTML = '';
-    await expect(initDashboard()).resolves.not.toThrow();
-  });
-});
+  test('GIVEN groups exist, WHEN dashboard loads, THEN group cards render', async () => {
 
-describe('admin dashboard stats logic', () => {
-  test('GIVEN groups array, WHEN member count summed, THEN total is correct', () => {
-    const groups = [
-      { members: 5 },
-      { members: 8 },
-      { members: 3 }
-    ];
-    const total = groups.reduce((sum, g) => sum + g.members, 0);
-    expect(total).toBe(16);
-  });
+    getMyGroups.mockResolvedValue([
+      {
+        id: '1',
+        name: 'Family Group',
+        group_members: [{}, {}],
+        contribution_amount: 500,
+        frequency: 'monthly',
+        status: 'active'
+      }
+    ]);
 
-  test('GIVEN groups array, WHEN savings summed, THEN total is correct', () => {
-    const groups = [
-      { totalSavings: 45000 },
-      { totalSavings: 72000 },
-      { totalSavings: 33750 }
-    ];
-    const total = groups.reduce((sum, g) => sum + g.totalSavings, 0);
-    expect(total).toBe(150750);
-  });
+    supabase.from.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        data: [],
+        error: null
+      })
+    });
 
-  test('GIVEN groups array, WHEN active filtered, THEN returns correct count', () => {
-    const groups = [
-      { status: 'active' },
-      { status: 'inactive' },
-      { status: 'active' }
-    ];
-    expect(groups.filter(g => g.status === 'active').length).toBe(2);
+    await initDashboard();
+
+    expect(
+      document.getElementById('groups-grid').innerHTML
+    ).toContain('Family Group');
+
+    expect(
+      document.getElementById('stats-grid').innerHTML
+    ).toContain('Total Members');
   });
 
-  test('GIVEN empty groups, WHEN stats calculated, THEN returns 0', () => {
-    const groups = [];
-    expect(groups.reduce((sum, g) => sum + g.members, 0)).toBe(0);
+  test('GIVEN getMyGroups fails, WHEN dashboard loads, THEN error message shown', async () => {
+
+    getMyGroups.mockRejectedValue(
+      new Error('Database failed')
+    );
+
+    supabase.from.mockReturnValue({
+      select: jest.fn().mockResolvedValue({
+        data: [],
+        error: null
+      })
+    });
+
+    await initDashboard();
+
+    expect(
+      document.getElementById('groups-grid').innerHTML
+    ).toContain('Could not load groups');
   });
 
-  test('GIVEN groups, WHEN count checked, THEN returns correct number', () => {
-    const groups = [{ id: 1 }, { id: 2 }, { id: 3 }];
-    expect(groups.length).toBe(3);
-  });
-});
+  test('GIVEN members exist, WHEN role panel loads, THEN members render', async () => {
 
-describe('admin role check', () => {
-  beforeEach(() => { localStorage.clear(); });
+    getMyGroups.mockResolvedValue([]);
 
-  test('GIVEN admin user, WHEN role retrieved, THEN returns admin', () => {
-    localStorage.setItem('stokvel_user', JSON.stringify({ role: 'admin' }));
-    const user = JSON.parse(localStorage.getItem('stokvel_user') || '{}');
-    expect(user.role).toBe('admin');
+    let call = 0;
+
+    supabase.from.mockImplementation(() => ({
+      select: jest.fn().mockImplementation(() => {
+
+        call++;
+
+        if (call === 1) {
+          return Promise.resolve({
+            data: [
+              {
+                id: '1',
+                full_name: 'Lucky',
+                email: 'lucky@test.com'
+              }
+            ],
+            error: null
+          });
+        }
+
+        return Promise.resolve({
+          data: [
+            {
+              user_id: '1',
+              role: 'member'
+            }
+          ],
+          error: null
+        });
+      })
+    }));
+
+    await initDashboard();
+
+    expect(
+      document.getElementById('role-management-panel').innerHTML
+    ).toContain('Lucky');
   });
 
-  test('GIVEN no user, WHEN role retrieved, THEN returns undefined', () => {
-    const user = JSON.parse(localStorage.getItem('stokvel_user') || '{}');
-    expect(user.role).toBeUndefined();
-  });
 });
