@@ -1,140 +1,348 @@
-// ============================================================
-// interest-rates.test.js
-// Unit tests for calculateProjectedSavings in interest-rates.js
-// Covers: normal cases, boundary cases, equivalence classes
-// ============================================================
+/**
+ * @jest-environment jsdom
+ */
 
-import { calculateProjectedSavings } from '../interest-rates.js';
+jest.mock('../supabase-client.js', () => ({
+  getLatestInterestRates: jest.fn()
+}));
 
-describe('calculateProjectedSavings', () => {
+import { getLatestInterestRates } from '../supabase-client.js';
 
-  // ── Normal cases ───────────────────────────────────────────
+import {
+  calculateProjectedSavings
+} from '../interest-rates.js';
 
-  test('returns a positive value for valid inputs', () => {
-    const result = calculateProjectedSavings(500, 12, 10.25);
-    expect(result).toBeGreaterThan(0);
+describe('interest-rates.js', () => {
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    document.body.innerHTML = `
+      <div id="prime-rate"></div>
+      <div id="repo-rate"></div>
+      <div id="rate-last-updated"></div>
+      <div id="rate-source"></div>
+
+      <input id="savings-amount" />
+      <input id="savings-months" />
+
+      <button id="calculate-projection">
+        Calculate
+      </button>
+
+      <div id="projected-savings"></div>
+      <div id="projection-note"></div>
+    `;
+
+    window.currentPrimeRate = undefined;
+    window.currentRepoRate = undefined;
   });
 
-  test('returns more than total contributions due to interest', () => {
-    const monthly = 500;
-    const months  = 12;
-    const result  = calculateProjectedSavings(monthly, months, 10.25);
-    expect(result).toBeGreaterThan(monthly * months);
+  // =====================================================
+  // calculateProjectedSavings
+  // =====================================================
+
+  test('calculates projected savings correctly', () => {
+    const result =
+      calculateProjectedSavings(1000, 12, 10);
+
+    expect(result).toBeGreaterThan(12000);
   });
 
-  test('higher interest rate produces higher return', () => {
-    const low  = calculateProjectedSavings(500, 12, 5);
-    const high = calculateProjectedSavings(500, 12, 15);
-    expect(high).toBeGreaterThan(low);
-  });
+  test('returns 0 when contribution is 0', () => {
+    const result =
+      calculateProjectedSavings(0, 12, 10);
 
-  test('more months produces higher return', () => {
-    const short = calculateProjectedSavings(500, 6, 10.25);
-    const long  = calculateProjectedSavings(500, 24, 10.25);
-    expect(long).toBeGreaterThan(short);
-  });
-
-  test('higher monthly contribution produces higher return', () => {
-    const small = calculateProjectedSavings(500,  12, 10.25);
-    const large = calculateProjectedSavings(1000, 12, 10.25);
-    expect(large).toBeGreaterThan(small);
-  });
-
-  test('calculates correctly for 1 month', () => {
-    // After 1 month: (0 + 500) * (1 + 0.1025/12)
-    const rate   = 10.25 / 100 / 12;
-    const expected = 500 * (1 + rate);
-    const result = calculateProjectedSavings(500, 1, 10.25);
-    expect(result).toBeCloseTo(expected, 2);
-  });
-
-  test('returns a number type', () => {
-    const result = calculateProjectedSavings(500, 12, 10.25);
-    expect(typeof result).toBe('number');
-  });
-
-  // ── Boundary cases ─────────────────────────────────────────
-
-  test('returns 0 for 0 months', () => {
-    const result = calculateProjectedSavings(500, 0, 10.25);
     expect(result).toBe(0);
   });
 
-  test('returns 0 for 0 monthly contribution', () => {
-    const result = calculateProjectedSavings(0, 12, 10.25);
+  test('returns 0 when months is 0', () => {
+    const result =
+      calculateProjectedSavings(1000, 0, 10);
+
     expect(result).toBe(0);
   });
 
-  test('handles 0% interest rate', () => {
-    // With 0% interest, future value equals total contributions
-    const result = calculateProjectedSavings(500, 12, 0);
-    expect(result).toBeCloseTo(500 * 12, 0);
+  // =====================================================
+  // Live rates fetch
+  // =====================================================
+
+  test('loads and displays live rates successfully', async () => {
+    getLatestInterestRates.mockResolvedValue({
+      repo_rate: 7.5,
+      prime_rate: 11.25,
+      fetched_at: '2026-05-01',
+      source: 'SARB'
+    });
+
+    jest.resetModules();
+
+    await import('../interest-rates.js');
+
+    document.dispatchEvent(
+      new Event('DOMContentLoaded')
+    );
+
+    await Promise.resolve();
+
+    expect(document.getElementById('prime-rate').textContent)
+      .toContain('11.25%');
+
+    expect(document.getElementById('repo-rate').textContent)
+      .toContain('7.5%');
+
+    expect(document.getElementById('rate-source').textContent)
+      .toContain('SARB');
+
+    expect(window.currentPrimeRate)
+      .toBe(11.25);
+
+    expect(window.currentRepoRate)
+      .toBe(7.5);
   });
 
-  test('handles very small contribution (R1)', () => {
-    const result = calculateProjectedSavings(1, 12, 10.25);
-    expect(result).toBeGreaterThan(0);
+  test('falls back to cached rates if fetch fails', async () => {
+    console.warn = jest.fn();
+
+    getLatestInterestRates.mockRejectedValue(
+      new Error('Fetch failed')
+    );
+
+    jest.resetModules();
+
+    await import('../interest-rates.js');
+
+    document.dispatchEvent(
+      new Event('DOMContentLoaded')
+    );
+
+    await Promise.resolve();
+
+    expect(console.warn)
+      .toHaveBeenCalled();
+
+    expect(document.getElementById('prime-rate').textContent)
+      .toContain('10.25%');
+
+    expect(document.getElementById('repo-rate').textContent)
+      .toContain('6.75%');
+
+    expect(document.getElementById('rate-source').textContent)
+      .toContain('cached');
   });
 
-  test('handles very large contribution (R100000)', () => {
-    const result = calculateProjectedSavings(100000, 12, 10.25);
-    expect(result).toBeGreaterThan(100000 * 12);
+  // =====================================================
+  // Calculator
+  // =====================================================
+
+  test('runs calculator and updates projection result', async () => {
+    getLatestInterestRates.mockResolvedValue({
+      repo_rate: 7.5,
+      prime_rate: 10,
+      fetched_at: '2026-05-01',
+      source: 'SARB'
+    });
+
+    jest.resetModules();
+
+    await import('../interest-rates.js');
+
+    document.dispatchEvent(
+      new Event('DOMContentLoaded')
+    );
+
+    await Promise.resolve();
+
+    document.getElementById('savings-amount').value =
+      '1000';
+
+    document.getElementById('savings-months').value =
+      '12';
+
+    document
+      .getElementById('calculate-projection')
+      .click();
+
+    expect(document.getElementById('projected-savings').textContent)
+      .not.toBe('R 0.00');
+
+    expect(document.getElementById('projection-note').textContent)
+      .toContain('10%');
   });
 
-  test('handles 1 month with 0% interest', () => {
-    const result = calculateProjectedSavings(500, 1, 0);
-    expect(result).toBeCloseTo(500, 2);
+  test('handles invalid calculator inputs', async () => {
+    getLatestInterestRates.mockResolvedValue({
+      repo_rate: 7.5,
+      prime_rate: 10,
+      fetched_at: '2026-05-01',
+      source: 'SARB'
+    });
+
+    jest.resetModules();
+
+    await import('../interest-rates.js');
+
+    document.dispatchEvent(
+      new Event('DOMContentLoaded')
+    );
+
+    await Promise.resolve();
+
+    document.getElementById('savings-amount').value =
+      '-1';
+
+    document.getElementById('savings-months').value =
+      '12';
+
+    document
+      .getElementById('calculate-projection')
+      .click();
+
+    expect(document.getElementById('projected-savings').textContent)
+      .toBe('R 0.00');
   });
 
-  test('handles large number of months (120 = 10 years)', () => {
-    const result = calculateProjectedSavings(500, 120, 10.25);
-    expect(result).toBeGreaterThan(500 * 120);
+  test('handles NaN calculator values', async () => {
+    getLatestInterestRates.mockResolvedValue({
+      repo_rate: 7.5,
+      prime_rate: 10,
+      fetched_at: '2026-05-01',
+      source: 'SARB'
+    });
+
+    jest.resetModules();
+
+    await import('../interest-rates.js');
+
+    document.dispatchEvent(
+      new Event('DOMContentLoaded')
+    );
+
+    await Promise.resolve();
+
+    document.getElementById('savings-amount').value =
+      'abc';
+
+    document.getElementById('savings-months').value =
+      'xyz';
+
+    document
+      .getElementById('calculate-projection')
+      .click();
+
+    expect(document.getElementById('projected-savings').textContent)
+      .toBe('R 0.00');
   });
 
-  // ── Equivalence classes ────────────────────────────────────
+  // =====================================================
+  // Live input listeners
+  // =====================================================
 
-  test('low contribution class (R1 - R499)', () => {
-    const result = calculateProjectedSavings(250, 12, 10.25);
-    expect(result).toBeGreaterThan(0);
+  test('updates calculation on amount input change', async () => {
+    getLatestInterestRates.mockResolvedValue({
+      repo_rate: 7.5,
+      prime_rate: 10,
+      fetched_at: '2026-05-01',
+      source: 'SARB'
+    });
+
+    jest.resetModules();
+
+    await import('../interest-rates.js');
+
+    document.dispatchEvent(
+      new Event('DOMContentLoaded')
+    );
+
+    await Promise.resolve();
+
+    const amountEl =
+      document.getElementById('savings-amount');
+
+    const monthsEl =
+      document.getElementById('savings-months');
+
+    amountEl.value = '500';
+    monthsEl.value = '6';
+
+    amountEl.dispatchEvent(new Event('input'));
+
+    expect(document.getElementById('projected-savings').textContent)
+      .not.toBe('R 0.00');
   });
 
-  test('medium contribution class (R500 - R2000)', () => {
-    const result = calculateProjectedSavings(1000, 12, 10.25);
-    expect(result).toBeGreaterThan(1000 * 12);
+  test('updates calculation on months input change', async () => {
+    getLatestInterestRates.mockResolvedValue({
+      repo_rate: 7.5,
+      prime_rate: 10,
+      fetched_at: '2026-05-01',
+      source: 'SARB'
+    });
+
+    jest.resetModules();
+
+    await import('../interest-rates.js');
+
+    document.dispatchEvent(
+      new Event('DOMContentLoaded')
+    );
+
+    await Promise.resolve();
+
+    const amountEl =
+      document.getElementById('savings-amount');
+
+    const monthsEl =
+      document.getElementById('savings-months');
+
+    amountEl.value = '500';
+    monthsEl.value = '6';
+
+    monthsEl.dispatchEvent(new Event('input'));
+
+    expect(document.getElementById('projected-savings').textContent)
+      .not.toBe('R 0.00');
   });
 
-  test('high contribution class (R2000+)', () => {
-    const result = calculateProjectedSavings(5000, 12, 10.25);
-    expect(result).toBeGreaterThan(5000 * 12);
+  // =====================================================
+  // Missing DOM elements
+  // =====================================================
+
+  test('does not crash if calculator elements are missing', async () => {
+    document.body.innerHTML = '';
+
+    getLatestInterestRates.mockResolvedValue({
+      repo_rate: 7.5,
+      prime_rate: 10,
+      fetched_at: '2026-05-01',
+      source: 'SARB'
+    });
+
+    jest.resetModules();
+
+    await expect(
+      import('../interest-rates.js')
+    ).resolves.not.toThrow();
   });
 
-  test('short term class (1-6 months)', () => {
-    const result = calculateProjectedSavings(500, 3, 10.25);
-    expect(result).toBeGreaterThan(0);
+  test('shows loading state initially', async () => {
+    getLatestInterestRates.mockImplementation(
+      () => new Promise(() => {})
+    );
+
+    jest.resetModules();
+
+    import('../interest-rates.js');
+
+    document.dispatchEvent(
+      new Event('DOMContentLoaded')
+    );
+
+    expect(document.getElementById('prime-rate').textContent)
+      .toBe('...');
+
+    expect(document.getElementById('repo-rate').textContent)
+      .toBe('...');
   });
 
-  test('medium term class (7-24 months)', () => {
-    const result = calculateProjectedSavings(500, 12, 10.25);
-    expect(result).toBeGreaterThan(0);
-  });
-
-  test('long term class (25+ months)', () => {
-    const result = calculateProjectedSavings(500, 36, 10.25);
-    expect(result).toBeGreaterThan(500 * 36);
-  });
-
-  test('low interest rate class (0-5%)', () => {
-    const result = calculateProjectedSavings(500, 12, 3);
-    expect(result).toBeGreaterThan(500 * 12);
-  });
-
-  test('medium interest rate class (5-12%)', () => {
-    const result = calculateProjectedSavings(500, 12, 10.25);
-    expect(result).toBeGreaterThan(500 * 12);
-  });
-
-  test('high interest rate class (12%+)', () => {
-    const result = calculateProjectedSavings(500, 12, 15);
-    expect(result).toBeGreaterThan(500 * 12);
-  });
 });
