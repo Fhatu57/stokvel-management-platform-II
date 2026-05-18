@@ -23,7 +23,10 @@
   "js/invites.js",
   "js/meetings.js",
   "js/payouts.js",
-  "js/utils.js"
+  "js/utils.js",
+  "js/notifications.js",
+  "js/profile.js"
+
 
 ],
     "moduleNameMapper": {
