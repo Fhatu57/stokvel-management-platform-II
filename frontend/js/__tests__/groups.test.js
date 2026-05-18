@@ -1,4 +1,6 @@
-import { initCreateGroup } from '../groups.js';
+/**
+ * @jest-environment jsdom
+ */
 
 jest.mock('../supabase-client.js', () => ({
   createGroup: jest.fn()
@@ -11,116 +13,239 @@ jest.mock('../utils.js', () => ({
 import { createGroup } from '../supabase-client.js';
 import { showToast } from '../utils.js';
 
-describe('groups.js', () => {
+import { initCreateGroup } from '../groups.js';
+
+describe('create group functionality', () => {
 
   beforeEach(() => {
+    jest.clearAllMocks();
 
     document.body.innerHTML = `
       <form id="create-group-form">
-        <input id="groupName" type="text" />
-        <input id="contribution" type="number" />
+
+        <input
+          id="groupName"
+          value="Savings Club"
+        />
+
+        <input
+          id="contribution"
+          value="500"
+        />
+
         <select id="frequency">
-          <option value="">Select</option>
-          <option value="Monthly">Monthly</option>
+          <option value="monthly" selected>
+            Monthly
+          </option>
         </select>
-        <textarea id="description"></textarea>
-        <button type="submit">Create Group</button>
+
+        <textarea id="description">
+          Test description
+        </textarea>
+
+        <input
+          id="startDate"
+          value="2026-05-20"
+        />
+
+        <button type="submit">
+          Create Group
+        </button>
+
       </form>
     `;
 
-    jest.clearAllMocks();
+    global.startDate = '2026-05-20';
+
+    delete window.location;
+
+    window.location = {
+      href: ''
+    };
+
+    jest.useFakeTimers();
   });
 
-  test('GIVEN no form, WHEN initCreateGroup called, THEN does not throw', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  // =====================================================
+  // Form existence
+  // =====================================================
+
+  test('logs error if form does not exist', () => {
+    console.error = jest.fn();
 
     document.body.innerHTML = '';
 
-    expect(() => initCreateGroup()).not.toThrow();
-  });
-
-  test('GIVEN empty name, WHEN form submitted, THEN validation error shown', async () => {
-
     initCreateGroup();
 
-    document.getElementById('contribution').value = '500';
-    document.getElementById('frequency').value = 'Monthly';
-
-    const form = document.getElementById('create-group-form');
-
-    form.dispatchEvent(
-      new Event('submit', { bubbles: true, cancelable: true })
-    );
-
-    expect(showToast).toHaveBeenCalledWith(
-      'Please enter a group name',
-      'error'
-    );
+    expect(console.error)
+      .toHaveBeenCalledWith(
+        'initCreateGroup: form #create-group-form not found in HTML'
+      );
   });
 
-  test('GIVEN invalid contribution, WHEN form submitted, THEN validation error shown', async () => {
+  // =====================================================
+  // Successful initialization
+  // =====================================================
 
+  test('attaches submit listener successfully', () => {
     initCreateGroup();
 
-    document.getElementById('groupName').value = 'Test Group';
+    const form =
+      document.getElementById('create-group-form');
+
+    expect(form).not.toBeNull();
+  });
+
+  // =====================================================
+  // Validation
+  // =====================================================
+
+  test('shows error when group name is empty', async () => {
+    initCreateGroup();
+
+    document.getElementById('groupName').value = '';
+
+    document
+      .getElementById('create-group-form')
+      .dispatchEvent(new Event('submit'));
+
+    expect(showToast)
+      .toHaveBeenCalledWith(
+        'Please enter a group name',
+        'error'
+      );
+  });
+
+  test('shows error when contribution is invalid', async () => {
+    initCreateGroup();
+
     document.getElementById('contribution').value = '-5';
-    document.getElementById('frequency').value = 'Monthly';
 
-    const form = document.getElementById('create-group-form');
+    document
+      .getElementById('create-group-form')
+      .dispatchEvent(new Event('submit'));
 
-    form.dispatchEvent(
-      new Event('submit', { bubbles: true, cancelable: true })
-    );
-
-    expect(showToast).toHaveBeenCalledWith(
-      'Please enter a valid contribution amount',
-      'error'
-    );
+    expect(showToast)
+      .toHaveBeenCalledWith(
+        'Please enter a valid contribution amount',
+        'error'
+      );
   });
 
-  test('GIVEN missing frequency, WHEN form submitted, THEN validation error shown', async () => {
-
+  test('shows error when frequency is missing', async () => {
     initCreateGroup();
 
-    document.getElementById('groupName').value = 'Test Group';
-    document.getElementById('contribution').value = '500';
+    document.getElementById('frequency').value = '';
 
-    const form = document.getElementById('create-group-form');
+    document
+      .getElementById('create-group-form')
+      .dispatchEvent(new Event('submit'));
 
-    form.dispatchEvent(
-      new Event('submit', { bubbles: true, cancelable: true })
-    );
-
-    expect(showToast).toHaveBeenCalledWith(
-      'Please select a contribution frequency',
-      'error'
-    );
+    expect(showToast)
+      .toHaveBeenCalledWith(
+        'Please select a contribution frequency',
+        'error'
+      );
   });
 
-  test('GIVEN valid form, WHEN submitted, THEN createGroup called', async () => {
+  test('shows error when startDate is missing', async () => {
+    initCreateGroup();
 
+    global.startDate = '';
+
+    document
+      .getElementById('create-group-form')
+      .dispatchEvent(new Event('submit'));
+
+    expect(showToast)
+      .toHaveBeenCalledWith(
+        'Please select a start date',
+        'error'
+      );
+  });
+
+  // =====================================================
+  // Successful group creation
+  // =====================================================
+
+  test('creates group successfully', async () => {
     createGroup.mockResolvedValue({});
 
     initCreateGroup();
 
-    document.getElementById('groupName').value = 'Family Stokvel';
-    document.getElementById('contribution').value = '500';
-    document.getElementById('frequency').value = 'Monthly';
-    document.getElementById('description').value = 'Savings group';
+    document
+      .getElementById('create-group-form')
+      .dispatchEvent(new Event('submit'));
 
-    const form = document.getElementById('create-group-form');
+    await Promise.resolve();
 
-    await form.dispatchEvent(
-      new Event('submit', { bubbles: true, cancelable: true })
-    );
+    expect(createGroup)
+      .toHaveBeenCalledWith({
+        name: 'Savings Club',
+        description: 'Test description',
+        contributionAmount: 500,
+        frequency: 'monthly',
+        maxMembers: 20
+      });
 
-    expect(createGroup).toHaveBeenCalled();
-
-    expect(showToast).toHaveBeenCalledWith(
-      'Group created successfully!'
-    );
+    expect(showToast)
+      .toHaveBeenCalledWith(
+        'Group created successfully!'
+      );
   });
 
-  test('GIVEN createGroup fails, WHEN submitted, THEN error toast shown', async () => {
+  test('redirects after successful creation', async () => {
+    createGroup.mockResolvedValue({});
+
+    initCreateGroup();
+
+    document
+      .getElementById('create-group-form')
+      .dispatchEvent(new Event('submit'));
+
+    await Promise.resolve();
+
+    jest.advanceTimersByTime(1000);
+
+    expect(window.location.href)
+      .toBe('admin-dashboard.html');
+  });
+
+  // =====================================================
+  // Submit button states
+  // =====================================================
+
+  test('disables submit button while creating', async () => {
+    createGroup.mockImplementation(
+      () => new Promise(() => {})
+    );
+
+    initCreateGroup();
+
+    const btn =
+      document.querySelector('button[type="submit"]');
+
+    document
+      .getElementById('create-group-form')
+      .dispatchEvent(new Event('submit'));
+
+    expect(btn.disabled)
+      .toBe(true);
+
+    expect(btn.textContent)
+      .toBe('Creating...');
+  });
+
+  // =====================================================
+  // Failed group creation
+  // =====================================================
+
+  test('handles createGroup failure', async () => {
+    console.error = jest.fn();
 
     createGroup.mockRejectedValue(
       new Error('Database failed')
@@ -128,20 +253,90 @@ describe('groups.js', () => {
 
     initCreateGroup();
 
-    document.getElementById('groupName').value = 'Family Stokvel';
-    document.getElementById('contribution').value = '500';
-    document.getElementById('frequency').value = 'Monthly';
+    document
+      .getElementById('create-group-form')
+      .dispatchEvent(new Event('submit'));
 
-    const form = document.getElementById('create-group-form');
+    await Promise.resolve();
 
-    await form.dispatchEvent(
-      new Event('submit', { bubbles: true, cancelable: true })
+    expect(console.error)
+      .toHaveBeenCalled();
+
+    expect(showToast)
+      .toHaveBeenCalledWith(
+        'Error: Database failed',
+        'error'
+      );
+  });
+
+  test('re-enables button after failure', async () => {
+    createGroup.mockRejectedValue(
+      new Error('Insert failed')
     );
 
-    expect(showToast).toHaveBeenCalledWith(
-      'Error: Database failed',
-      'error'
-    );
+    initCreateGroup();
+
+    const btn =
+      document.querySelector('button[type="submit"]');
+
+    document
+      .getElementById('create-group-form')
+      .dispatchEvent(new Event('submit'));
+
+    await Promise.resolve();
+
+    expect(btn.disabled)
+      .toBe(false);
+
+    expect(btn.textContent)
+      .toBe('Create Group');
+  });
+
+  // =====================================================
+  // Edge cases
+  // =====================================================
+
+  test('handles missing description gracefully', async () => {
+    createGroup.mockResolvedValue({});
+
+    initCreateGroup();
+
+    document.getElementById('description').value = '';
+
+    document
+      .getElementById('create-group-form')
+      .dispatchEvent(new Event('submit'));
+
+    await Promise.resolve();
+
+    expect(createGroup)
+      .toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: ''
+        })
+      );
+  });
+
+  test('handles decimal contribution amounts', async () => {
+    createGroup.mockResolvedValue({});
+
+    initCreateGroup();
+
+    document.getElementById('contribution').value =
+      '1250.75';
+
+    document
+      .getElementById('create-group-form')
+      .dispatchEvent(new Event('submit'));
+
+    await Promise.resolve();
+
+    expect(createGroup)
+      .toHaveBeenCalledWith(
+        expect.objectContaining({
+          contributionAmount: 1250.75
+        })
+      );
   });
 
 });

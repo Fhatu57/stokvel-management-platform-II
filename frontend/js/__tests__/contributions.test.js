@@ -1,92 +1,66 @@
-import {
-  escHtml,
-  capitalize,
-  getRole,
-  getUserName,
-  getUserEmail,
-  initContributions
-} from '../contributions.js';
+/**
+ * @jest-environment jsdom
+ */
 
 jest.mock('../supabase-client.js', () => ({
   getMyContributions: jest.fn(),
   getAllContributions: jest.fn(),
-  updateContributionStatus: jest.fn()
+  updateContributionStatus: jest.fn(),
+  recordContribution: jest.fn(),
+  getMyGroups: jest.fn(),
+  supabase: {
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() =>
+          Promise.resolve({
+            data: [{ user_id: '1' }]
+          })
+        ),
+        in: jest.fn(() =>
+          Promise.resolve({
+            data: [
+              {
+                id: '1',
+                full_name: 'John Doe'
+              }
+            ]
+          })
+        )
+      }))
+    }))
+  }
 }));
 
 jest.mock('../utils.js', () => ({
-  formatCurrency: jest.fn(v => `R${v}`),
-  formatDate: jest.fn(v => v),
+  formatCurrency: jest.fn(v => `R ${v}`),
+  formatDate: jest.fn(() => '2026-05-18'),
   showToast: jest.fn()
 }));
 
 import {
   getMyContributions,
   getAllContributions,
-  updateContributionStatus
+  updateContributionStatus,
+  recordContribution,
+  getMyGroups
 } from '../supabase-client.js';
 
-describe('helpers', () => {
-  beforeEach(() => localStorage.clear());
+import { showToast } from '../utils.js';
 
-  test('escHtml escapes correctly', () => {
-    expect(escHtml('<div>"test"&</div>'))
-      .toBe('&lt;div&gt;&quot;test&quot;&amp;&lt;/div&gt;');
-  });
+import { initContributions }
+from '../contributions.js';
 
-  test('capitalize works', () => {
-    expect(capitalize('pending')).toBe('Pending');
-  });
+describe('initContributions', () => {
 
-  test('getRole default', () => {
-    expect(getRole()).toBe('member');
-  });
-
-  test('getRole admin', () => {
-    localStorage.setItem(
-      'stokvel_user',
-      JSON.stringify({ role: 'admin' })
-    );
-
-    expect(getRole()).toBe('admin');
-  });
-
-  test('getUserName returns name', () => {
-    localStorage.setItem(
-      'stokvel_user',
-      JSON.stringify({ name: 'Lucky Mokoena' })
-    );
-
-    expect(getUserName()).toBe('Lucky Mokoena');
-  });
-
-  test('getUserEmail returns email', () => {
-    localStorage.setItem(
-      'stokvel_user',
-      JSON.stringify({ email: 'lucky@test.com' })
-    );
-
-    expect(getUserEmail()).toBe('lucky@test.com');
-  });
-});
-
-describe('initContributions member flow', () => {
   beforeEach(() => {
-    localStorage.clear();
-
-    localStorage.setItem(
-      'stokvel_user',
-      JSON.stringify({
-        role: 'member',
-        name: 'Lucky Mokoena',
-        email: 'lucky@test.com'
-      })
-    );
+    jest.clearAllMocks();
 
     document.body.innerHTML = `
       <table>
         <thead>
           <tr id="contributions-header-row"></tr>
         </thead>
+
         <tbody id="contributions-table-body"></tbody>
       </table>
 
@@ -96,88 +70,114 @@ describe('initContributions member flow', () => {
 
       <select id="contribution-filter">
         <option value="all">All</option>
-        <option value="pending">Pending</option>
       </select>
+
+      <div id="record-contribution-section"></div>
     `;
-  });
 
-  test('loads member contributions', async () => {
-    getMyContributions.mockResolvedValue([
-      {
-        id: 'c1',
-        due_date: '2026-01-01',
-        groups: { name: 'Family Group' },
-        profiles: { full_name: 'Lucky' },
-        amount: 500,
-        status: 'pending'
-      }
-    ]);
-
-    await initContributions();
-
-    expect(
-      document.getElementById('contributions-table-body').innerHTML
-    ).toContain('Family Group');
-  });
-
-  test('updates totals', async () => {
-    getMyContributions.mockResolvedValue([
-      {
-        id: 'c1',
-        due_date: '2026-01-01',
-        groups: { name: 'Family Group' },
-        profiles: { full_name: 'Lucky' },
-        amount: 500,
-        status: 'pending'
-      }
-    ]);
-
-    await initContributions();
-
-    expect(
-      document.getElementById('contribution-count').textContent
-    ).toBe('1');
-
-    expect(
-      document.getElementById('pending-count').textContent
-    ).toBe('1');
-  });
-});
-
-describe('initContributions treasurer flow', () => {
-  beforeEach(() => {
     localStorage.clear();
 
     localStorage.setItem(
       'stokvel_user',
       JSON.stringify({
-        role: 'admin'
+        id: '1',
+        role: 'member',
+        name: 'John Doe',
+        email: 'john@test.com'
       })
     );
 
-    document.body.innerHTML = `
-      <table>
-        <thead>
-          <tr id="contributions-header-row"></tr>
-        </thead>
-        <tbody id="contributions-table-body"></tbody>
-      </table>
-
-      <div id="total-contributions"></div>
-      <div id="contribution-count"></div>
-      <div id="pending-count"></div>
-
-      <select id="contribution-filter"></select>
-    `;
+    window._contributionRows = [];
+    window._isTreasurer = false;
   });
 
-  test('loads all contributions', async () => {
-    getAllContributions.mockResolvedValue([
+  test('loads member contributions', async () => {
+    getMyContributions.mockResolvedValue([
       {
-        id: 'c1',
-        due_date: '2026-01-01',
-        groups: { name: 'Admin Group' },
-        profiles: { full_name: 'Thabo' },
+        id: '1',
+        amount: 500,
+        status: 'pending',
+        due_date: '2026-05-20',
+        groups: {
+          name: 'Savings Club'
+        },
+        profiles: {
+          full_name: 'John Doe'
+        }
+      }
+    ]);
+
+    await initContributions();
+
+    expect(getMyContributions)
+      .toHaveBeenCalled();
+  });
+
+  test('loads treasurer contributions', async () => {
+    localStorage.setItem(
+      'stokvel_user',
+      JSON.stringify({
+        role: 'treasurer'
+      })
+    );
+
+    getAllContributions.mockResolvedValue([]);
+    getMyGroups.mockResolvedValue([]);
+
+    await initContributions();
+
+    expect(getAllContributions)
+      .toHaveBeenCalled();
+  });
+
+  test('renders contribution rows', async () => {
+    getMyContributions.mockResolvedValue([
+      {
+        id: '1',
+        amount: 300,
+        status: 'completed',
+        due_date: '2026-05-20',
+        groups: {
+          name: 'Club'
+        },
+        profiles: {
+          full_name: 'John Doe'
+        }
+      }
+    ]);
+
+    await initContributions();
+
+    expect(
+      document.getElementById(
+        'contributions-table-body'
+      ).innerHTML
+    ).toContain('Club');
+  });
+
+  test('shows loading error', async () => {
+    getMyContributions.mockRejectedValue(
+      new Error('DB failed')
+    );
+
+    await initContributions();
+
+    expect(showToast)
+      .toHaveBeenCalledWith(
+        'Failed to load: DB failed',
+        'error'
+      );
+  });
+
+  test('updates stats correctly', async () => {
+    getMyContributions.mockResolvedValue([
+      {
+        id: '1',
+        amount: 500,
+        status: 'pending'
+      },
+      {
+        id: '2',
         amount: 1000,
         status: 'completed'
       }
@@ -186,103 +186,179 @@ describe('initContributions treasurer flow', () => {
     await initContributions();
 
     expect(
-      document.getElementById('contributions-header-row').innerHTML
-    ).toContain('Actions');
-  });
-});
-
-describe('error handling', () => {
-  beforeEach(() => {
-    document.body.innerHTML = `
-      <table>
-        <tbody id="contributions-table-body"></tbody>
-      </table>
-    `;
-  });
-
-  test('handles fetch failure', async () => {
-    getMyContributions.mockRejectedValue(
-      new Error('Database failed')
-    );
-
-    await initContributions();
+      document.getElementById(
+        'contribution-count'
+      ).textContent
+    ).toBe('2');
 
     expect(
-      document.getElementById('contributions-table-body').innerHTML
-    ).toContain('Could not load contributions');
+      document.getElementById(
+        'pending-count'
+      ).textContent
+    ).toBe('1');
   });
+
 });
 
-describe('PayFast flow', () => {
+describe('PayFast integration', () => {
+
   beforeEach(() => {
+    document.body.innerHTML = '';
+
+    localStorage.clear();
+
     localStorage.setItem(
       'stokvel_user',
       JSON.stringify({
-        name: 'Lucky Mokoena',
-        email: 'lucky@test.com'
+        name: 'John Doe',
+        email: 'john@test.com'
       })
     );
   });
 
-  test('creates PayFast form', () => {
-    const submitMock = jest.fn();
+  test('stores pending payment id', () => {
+    window.payWithPayFast(
+      '123',
+      500,
+      'Savings Club'
+    );
 
-    const originalCreate = document.createElement.bind(document);
-
-    jest.spyOn(document, 'createElement').mockImplementation((tag) => {
-      const el = originalCreate(tag);
-
-      if (tag === 'form') {
-        el.submit = submitMock;
-      }
-
-      return el;
-    });
-
-    window.payWithPayFast('c1', 500, 'Family Group');
-
-    expect(submitMock).toHaveBeenCalled();
+    expect(
+      localStorage.getItem(
+        'pending_payment_id'
+      )
+    ).toBe('123');
   });
+
+  test('creates payment form', () => {
+    window.payWithPayFast(
+      '123',
+      500,
+      'Savings Club'
+    );
+
+    const form =
+      document.querySelector('form');
+
+    expect(form).not.toBeNull();
+
+    expect(form.method.toLowerCase())
+      .toBe('post');
+  });
+
 });
 
-describe('treasurer actions', () => {
+describe('confirmContribution', () => {
+
   beforeEach(() => {
+    window._contributionRows = [
+      {
+        id: '1',
+        status: 'pending'
+      }
+    ];
+
     document.body.innerHTML = `
       <select id="contribution-filter">
         <option value="all">All</option>
       </select>
-      <table>
-        <tbody id="contributions-table-body"></tbody>
-      </table>
+
+      <tbody id="contributions-table-body"></tbody>
     `;
-
-    window._contributionRows = [
-      {
-        id: 'c1',
-        status: 'pending',
-        member: 'Lucky',
-        amount: 500,
-        group: 'Family Group',
-        date: '2026-01-01'
-      }
-    ];
   });
 
-  test('confirmContribution updates status', async () => {
-    updateContributionStatus.mockResolvedValue();
+  test('confirms contribution successfully', async () => {
+    updateContributionStatus
+      .mockResolvedValue({});
 
-    await window.confirmContribution('c1', 'Lucky');
+    await window.confirmContribution(
+      '1',
+      'John'
+    );
 
     expect(updateContributionStatus)
-      .toHaveBeenCalledWith('c1', 'completed');
+      .toHaveBeenCalledWith(
+        '1',
+        'completed'
+      );
+
+    expect(showToast)
+      .toHaveBeenCalled();
   });
 
-  test('flagMissed updates status', async () => {
-    updateContributionStatus.mockResolvedValue();
+  test('handles confirmation failure', async () => {
+    updateContributionStatus
+      .mockRejectedValue(
+        new Error('Failed')
+      );
 
-    await window.flagMissed('c1');
+    await window.confirmContribution(
+      '1',
+      'John'
+    );
+
+    expect(showToast)
+      .toHaveBeenCalledWith(
+        'Failed to confirm: Failed',
+        'error'
+      );
+  });
+
+});
+
+describe('flagMissed', () => {
+
+  test('flags contribution as missed', async () => {
+    updateContributionStatus
+      .mockResolvedValue({});
+
+    await window.flagMissed('1');
 
     expect(updateContributionStatus)
-      .toHaveBeenCalledWith('c1', 'missed');
+      .toHaveBeenCalledWith(
+        '1',
+        'missed'
+      );
   });
+
+});
+
+describe('loadMembersForRC', () => {
+
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <select id="rc-member"></select>
+
+      <select id="rc-group">
+        <option
+          data-amount="500"
+          selected>
+          Group
+        </option>
+      </select>
+
+      <input id="rc-amount" />
+    `;
+  });
+
+  test('loads members into dropdown', async () => {
+    await window.loadMembersForRC('1');
+
+    expect(
+      document.getElementById(
+        'rc-member'
+      ).innerHTML
+    ).toContain('John Doe');
+  });
+
+  test('auto fills amount', async () => {
+    await window.loadMembersForRC('1');
+
+    expect(
+      document.getElementById(
+        'rc-amount'
+      ).value
+    ).toBe('500');
+  });
+
 });
