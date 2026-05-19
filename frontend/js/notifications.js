@@ -211,11 +211,7 @@ window.filterNotifs = function(type) {
   renderNotifs(filtered);
 };
 
-window.clearNotifications = function() {
-  _allNotifs = [];
-  renderNotifs([]);
-  showToast('Notifications cleared', 'success');
-};
+
 
 function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');

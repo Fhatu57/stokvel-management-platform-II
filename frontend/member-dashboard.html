@@ -59,16 +59,17 @@
             </svg>
             Payout Schedule
           </a>
+          
         </section>
       </nav>
 
       <footer class="sidebar-user" data-testid="user-info">
         <abbr class="user-avatar" title="User initials">SN</abbr>
         <section class="user-info">
-          <strong class="user-name">Sipho Ndlovu</strong>
-          <em class="user-role">Member</em>
+          <strong class="user-name">--</strong>
+          <em class="user-role">--</em>
         </section>
-        <button class="btn btn-ghost btn-sm"  data-testid="logout-btn" title="Logout">
+        <button class="btn btn-ghost btn-sm" onclick="logout()" data-testid="logout-btn" title="Logout">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
@@ -81,7 +82,7 @@
     <!-- Main Content -->
     <main class="main-content">
       <header class="page-header">
-        <h1>Welcome, Sipho!</h1>
+        <h1>Welcome, --!</h1>
         <p>Here's your stokvel membership overview and upcoming payments.</p>
       </header>
 
@@ -94,7 +95,7 @@
               <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>
           </figure>
-          <strong class="stat-value">R 4,000</strong>
+          <strong class="stat-value">--</strong>
           <p class="stat-label">Total Contributed</p>
         </article>
         <article class="stat-card" data-testid="stat-next-payment">
@@ -104,7 +105,7 @@
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
           </figure>
-          <strong class="stat-value">15 Feb</strong>
+          <strong class="stat-value">--</strong>
           <p class="stat-label">Next Payment Due</p>
         </article>
         <article class="stat-card" data-testid="stat-my-payout">
@@ -114,7 +115,7 @@
               <line x1="1" y1="10" x2="23" y2="10"></line>
             </svg>
           </figure>
-          <strong class="stat-value">March</strong>
+          <strong class="stat-value">Month</strong>
           <p class="stat-label">My Payout Month</p>
         </article>
         <article class="stat-card" data-testid="stat-groups-count">
@@ -126,7 +127,7 @@
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
           </figure>
-          <strong class="stat-value">2</strong>
+          <strong class="stat-value">--</strong>
           <p class="stat-label">Active Groups</p>
         </article>
       </section>
@@ -140,7 +141,7 @@
           <article class="group-card" data-testid="group-soweto">
             <header class="group-card-header">
               <section>
-                <h3 class="group-name">Soweto Savings Club</h3>
+                <h3 class="group-name">--</h3>
                 <mark class="badge badge-success">Active Member</mark>
               </section>
             </header>
@@ -150,19 +151,19 @@
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                   <circle cx="9" cy="7" r="4"></circle>
                 </svg>
-                12 members
+                -- members
               </li>
               <li class="group-meta-item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="12" y1="1" x2="12" y2="23"></line>
                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                 </svg>
-                R 500 / Monthly
+                R -- / Monthly
               </li>
             </ul>
             <footer style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--slate-200);">
               <p style="font-size: 0.85rem; color: var(--slate-600);">
-                Your position: <strong style="color: var(--forest-green);">#5 of 12</strong> (Payout: March 2026)
+                Your position: <strong style="color: var(--forest-green);">#-- of --</strong> (Payout: --)
               </p>
             </footer>
           </article>
@@ -170,7 +171,7 @@
           <article class="group-card" data-testid="group-family">
             <header class="group-card-header">
               <section>
-                <h3 class="group-name">Family Unity Stokvel</h3>
+                <h3 class="group-name">--</h3>
                 <mark class="badge badge-success">Active Member</mark>
               </section>
             </header>
@@ -180,19 +181,19 @@
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                   <circle cx="9" cy="7" r="4"></circle>
                 </svg>
-                8 members
+                -- members
               </li>
               <li class="group-meta-item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="12" y1="1" x2="12" y2="23"></line>
                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                 </svg>
-                R 1,000 / Monthly
+                R -- / Monthly
               </li>
             </ul>
             <footer style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--slate-200);">
               <p style="font-size: 0.85rem; color: var(--slate-600);">
-                Your position: <strong style="color: var(--forest-green);">#3 of 8</strong> (Payout: May 2026)
+                Your position: <strong style="color: var(--forest-green);">#-- of --</strong> (Payout: --)
               </p>
             </footer>
           </article>
@@ -217,28 +218,28 @@
             </thead>
             <tbody>
               <tr>
-                <td>15 Jan 2026</td>
-                <td>Soweto Savings Club</td>
-                <td class="amount-cell">R 500</td>
-                <td><mark class="badge badge-success">Completed</mark></td>
+                <td>--</td>
+                <td>--</td>
+                <td class="amount-cell">R --</td>
+                <td><mark class="badge badge-success">--</mark></td>
               </tr>
               <tr>
-                <td>15 Jan 2026</td>
-                <td>Family Unity Stokvel</td>
-                <td class="amount-cell">R 1,000</td>
-                <td><mark class="badge badge-success">Completed</mark></td>
+                <td>--</td>
+                <td>--</td>
+                <td class="amount-cell">R --</td>
+                <td><mark class="badge badge-success">--</mark></td>
               </tr>
               <tr>
-                <td>15 Dec 2025</td>
-                <td>Soweto Savings Club</td>
-                <td class="amount-cell">R 500</td>
-                <td><mark class="badge badge-success">Completed</mark></td>
+                <td>--</td>
+                <td>--</td>
+                <td class="amount-cell">--</td>
+                <td><mark class="badge badge-success">--</mark></td>
               </tr>
               <tr>
-                <td>15 Dec 2025</td>
-                <td>Family Unity Stokvel</td>
-                <td class="amount-cell">R 1,000</td>
-                <td><mark class="badge badge-success">Completed</mark></td>
+                <td>--</td>
+                <td>--</td>
+                <td class="amount-cell">R --</td>
+                <td><mark class="badge badge-success">--</mark></td>
               </tr>
             </tbody>
           </table>
@@ -253,7 +254,7 @@
           <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
         <p style="color: #92400e; margin: 0;">
-          <strong>Payment Reminder:</strong> Your next contribution of R 1,500 (R 500 + R 1,000) is due on 15 February 2026.
+          <strong>Payment Reminder:</strong> --
         </p>
       </aside>
     </main>

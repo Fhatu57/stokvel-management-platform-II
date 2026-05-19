@@ -20,7 +20,6 @@ export function initCreateGroup() {
     const frequency          = form.querySelector('#frequency')?.value;
     const description        = form.querySelector('#description')?.value.trim() || '';
 
-    // Validation
     if (!name) {
       showToast('Please enter a group name', 'error');
       return;
@@ -31,10 +30,6 @@ export function initCreateGroup() {
     }
     if (!frequency) {
       showToast('Please select a contribution frequency', 'error');
-      return;
-    }
-    if (!startDate) {
-      showToast('Please select a start date', 'error');
       return;
     }
 

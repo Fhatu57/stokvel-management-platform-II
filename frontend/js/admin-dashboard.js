@@ -157,7 +157,6 @@ async function renderMemberRolePanel() {
             <th style="text-align:left;padding:.6rem .5rem;font-size:.85rem;">Name</th>
             <th style="text-align:left;padding:.6rem .5rem;font-size:.85rem;">Email</th>
             <th style="text-align:left;padding:.6rem .5rem;font-size:.85rem;">Role</th>
-            <th style="text-align:left;padding:.6rem .5rem;font-size:.85rem;">Change Role</th>
           </tr>
         </thead>
         <tbody>
@@ -169,15 +168,6 @@ async function renderMemberRolePanel() {
                 <td style="padding:.6rem .5rem;font-size:.85rem;color:var(--slate-500);">${m.email || '—'}</td>
                 <td style="padding:.6rem .5rem;">
                   <mark class="badge ${role === 'admin' ? 'badge-success' : role === 'treasurer' ? 'badge-warning' : ''}">${role}</mark>
-                </td>
-                <td style="padding:.6rem .5rem;">
-                  ${role === 'admin'
-                    ? '<span style="color:var(--slate-400);font-size:.85rem;">—</span>'
-                    : `<select class="form-select" style="width:auto;font-size:.85rem;" onchange="assignRole('${m.id}', this.value)">
-                        <option value="member"    ${role === 'member'    ? 'selected' : ''}>Member</option>
-                        <option value="treasurer" ${role === 'treasurer' ? 'selected' : ''}>Treasurer</option>
-                       </select>`
-                  }
                 </td>
               </tr>`;
           }).join('')}
