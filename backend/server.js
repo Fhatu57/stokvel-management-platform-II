@@ -17,13 +17,28 @@ app.use("/groups", groupRoutes);
 app.use("/invites", inviteRoutes);
 
 app.get("/api", (req, res) => {
-  res.json({ status: "Stokvel API is running" });
+  res.json({
+    status: "ok",
+    service: "Stokvel Management Platform",
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ status: "healthy" });
 });
 
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-app.get("/{*path}", (req, res) => {
+app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend", "index.html"));
+});
+
+app.use((req, res) => {
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({ error: "API endpoint not found" });
+  }
+  return res.status(404).sendFile(path.join(__dirname, "../frontend", "index.html"));
 });
 
 if (require.main === module) {

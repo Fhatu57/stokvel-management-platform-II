@@ -10,11 +10,8 @@ module.exports = {
   },
   transformIgnorePatterns: ["/node_modules/"],
   collectCoverageFrom: [
-  "**/*.js",
-  "!node_modules/**",
-  "!**/coverage/**",
-  "!jest.config.js",
-  "!babel.config.js",
-  "!frontend-js/**"
-]
+    "server.js",
+    "routes/**/*.js",
+    "!**/coverage/**"
+  ]
 };
