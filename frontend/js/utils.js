@@ -35,3 +35,7 @@ export function showToast(message, type = 'success') {
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
+
+export function navigateTo(path) {
+  window.location.href = path;
+}

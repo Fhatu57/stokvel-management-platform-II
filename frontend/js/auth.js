@@ -4,11 +4,29 @@
 // and logout. checkAuth() is called on every protected page.
 // ============================================================
 
-import { signInWithGoogle, signOut, onAuthStateChange, acceptInvitation } from './supabase-client.js';
+import {
+  signInWithGoogle,
+  signOut,
+  onAuthStateChange,
+  acceptInvitation,
+  isSupabaseConfigured,
+} from './supabase-client.js';
+import { navigateTo } from './utils.js';
 
 export function initLoginPage() {
   const googleBtn = document.getElementById('google-signin-btn');
-  if (googleBtn) {
+  const authStatus = document.getElementById('auth-status');
+
+  if (googleBtn && !isSupabaseConfigured) {
+    googleBtn.disabled = true;
+    googleBtn.setAttribute('aria-disabled', 'true');
+    googleBtn.textContent = 'Google sign-in coming soon';
+    if (authStatus) {
+      authStatus.textContent = 'Live authentication is being connected. The recruiter demo remains fully available.';
+    }
+  }
+
+  if (googleBtn && isSupabaseConfigured) {
     googleBtn.addEventListener('click', async () => {
       googleBtn.disabled = true;
       googleBtn.textContent = 'Signing in…';
@@ -18,6 +36,9 @@ export function initLoginPage() {
         console.error('Sign-in failed:', err);
         googleBtn.disabled = false;
         googleBtn.textContent = 'Sign in with Google';
+        if (authStatus) {
+          authStatus.textContent = 'Sign-in is temporarily unavailable. Please use the recruiter demo.';
+        }
       }
     });
   }
@@ -53,9 +74,9 @@ export function initLoginPage() {
       }
 
       switch (resolvedRole) {
-        case 'admin':     window.location.href = 'admin-dashboard.html';     break;
-        case 'treasurer': window.location.href = 'treasurer-dashboard.html'; break;
-        default:          window.location.href = 'member-dashboard.html';    break;
+        case 'admin':     navigateTo('admin-dashboard.html');     break;
+        case 'treasurer': navigateTo('treasurer-dashboard.html'); break;
+        default:          navigateTo('member-dashboard.html');    break;
       }
     }
   });
@@ -112,7 +133,7 @@ const NAV_LINKS = {
 
 export function checkAuth() {
   const user = JSON.parse(localStorage.getItem('stokvel_user') || 'null');
-  if (!user) { window.location.href = 'index.html'; return; }
+  if (!user) { navigateTo('index.html'); return; }
 
   // Update sidebar user info from real session data
   const userNameEl   = document.querySelector('.user-name');
@@ -143,7 +164,7 @@ export function checkAuth() {
 export function logout() {
   signOut().finally(() => {
     localStorage.removeItem('stokvel_user');
-    window.location.href = 'index.html';
+    navigateTo('index.html');
   });
 }
 

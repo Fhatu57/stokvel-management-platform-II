@@ -75,11 +75,19 @@
           Sign in with Google
         </button>
 
+        <a href="demo.html" class="btn btn-primary btn-lg demo-entry" data-testid="recruiter-demo-btn">
+          Explore the recruiter demo
+        </a>
+
+        <p id="auth-status" class="auth-status" role="status">
+          The demo is available without an account or personal information.
+        </p>
+
         <p style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: var(--slate-500);">
           You'll be redirected to your dashboard based on your role
         </p>
 
-        
+
 
         <p style="margin-top: 2rem; text-align: center; font-size: 0.8rem; color: var(--slate-500);">
           By signing in, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
@@ -90,6 +98,7 @@
   </section>
 
   <output id="toast-container" class="toast-container"></output>
+  <script src="config.js"></script>
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>

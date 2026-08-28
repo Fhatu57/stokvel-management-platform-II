@@ -211,6 +211,14 @@ window.filterNotifs = function(type) {
   renderNotifs(filtered);
 };
 
+export function clearNotifications() {
+  _allNotifs = [];
+  renderNotifs([]);
+  showToast('Notifications cleared', 'success');
+}
+
+window.clearNotifications = clearNotifications;
+
 
 
 function escHtml(str) {

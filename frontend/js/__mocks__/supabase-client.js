@@ -21,6 +21,7 @@ const mockSupabase = {
 
 module.exports = {
   supabase: mockSupabase,
+  isSupabaseConfigured: true,
   getCurrentUser: jest.fn().mockResolvedValue({ id: 'test-user-id', email: 'test@test.com' }),
   getMyRole: jest.fn().mockResolvedValue('member'),
   getProfile: jest.fn().mockResolvedValue({ id: 'test-user-id', full_name: 'Test User', email: 'test@test.com' }),

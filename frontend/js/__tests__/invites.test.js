@@ -205,6 +205,6 @@ describe('invites.js', () => {
     const inviteList = document.getElementById('invite-list');
 
     expect(inviteList.innerHTML).toContain('invite@test.com');
-    expect(inviteList.innerHTML).toContain('pending');
+    expect(inviteList.innerHTML).toContain('Pending');
   });
 });

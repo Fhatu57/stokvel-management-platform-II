@@ -276,9 +276,9 @@ function downloadCSV(rows, filename) {
   showToast('Downloaded!', 'success');
 }
 
-function escHtml(str) {
+export function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-function capitalize(s) {
+export function capitalize(s) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 }

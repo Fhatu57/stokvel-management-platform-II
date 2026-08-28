@@ -1,6 +1,6 @@
 // ==================== CREATE GROUP ====================
 import { createGroup } from './supabase-client.js';
-import { showToast } from './utils.js';
+import { navigateTo, showToast } from './utils.js';
 
 export function initCreateGroup() {
   const form = document.getElementById('create-group-form');
@@ -19,6 +19,7 @@ export function initCreateGroup() {
     const contributionAmount = parseFloat(form.querySelector('#contribution')?.value);
     const frequency          = form.querySelector('#frequency')?.value;
     const description        = form.querySelector('#description')?.value.trim() || '';
+    const startDate          = form.querySelector('#startDate')?.value;
 
     if (!name) {
       showToast('Please enter a group name', 'error');
@@ -32,6 +33,10 @@ export function initCreateGroup() {
       showToast('Please select a contribution frequency', 'error');
       return;
     }
+    if (!startDate) {
+      showToast('Please select a start date', 'error');
+      return;
+    }
 
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -42,7 +47,7 @@ export function initCreateGroup() {
       await createGroup({ name, description, contributionAmount, frequency, maxMembers: 20 });
 
       showToast('Group created successfully!');
-      setTimeout(() => { window.location.href = 'admin-dashboard.html'; }, 1000);
+      setTimeout(() => navigateTo('admin-dashboard.html'), 1000);
 
     } catch (err) {
       console.error('createGroup failed:', err.message);

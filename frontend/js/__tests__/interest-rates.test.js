@@ -9,7 +9,8 @@ jest.mock('../supabase-client.js', () => ({
 import { getLatestInterestRates } from '../supabase-client.js';
 
 import {
-  calculateProjectedSavings
+  calculateProjectedSavings,
+  initInterestRates
 } from '../interest-rates.js';
 
 describe('interest-rates.js', () => {
@@ -75,15 +76,7 @@ describe('interest-rates.js', () => {
       source: 'SARB'
     });
 
-    jest.resetModules();
-
-    await import('../interest-rates.js');
-
-    document.dispatchEvent(
-      new Event('DOMContentLoaded')
-    );
-
-    await Promise.resolve();
+    await initInterestRates();
 
     expect(document.getElementById('prime-rate').textContent)
       .toContain('11.25%');
@@ -108,15 +101,7 @@ describe('interest-rates.js', () => {
       new Error('Fetch failed')
     );
 
-    jest.resetModules();
-
-    await import('../interest-rates.js');
-
-    document.dispatchEvent(
-      new Event('DOMContentLoaded')
-    );
-
-    await Promise.resolve();
+    await initInterestRates();
 
     expect(console.warn)
       .toHaveBeenCalled();
@@ -143,15 +128,7 @@ describe('interest-rates.js', () => {
       source: 'SARB'
     });
 
-    jest.resetModules();
-
-    await import('../interest-rates.js');
-
-    document.dispatchEvent(
-      new Event('DOMContentLoaded')
-    );
-
-    await Promise.resolve();
+    await initInterestRates();
 
     document.getElementById('savings-amount').value =
       '1000';
@@ -178,15 +155,7 @@ describe('interest-rates.js', () => {
       source: 'SARB'
     });
 
-    jest.resetModules();
-
-    await import('../interest-rates.js');
-
-    document.dispatchEvent(
-      new Event('DOMContentLoaded')
-    );
-
-    await Promise.resolve();
+    await initInterestRates();
 
     document.getElementById('savings-amount').value =
       '-1';
@@ -210,15 +179,7 @@ describe('interest-rates.js', () => {
       source: 'SARB'
     });
 
-    jest.resetModules();
-
-    await import('../interest-rates.js');
-
-    document.dispatchEvent(
-      new Event('DOMContentLoaded')
-    );
-
-    await Promise.resolve();
+    await initInterestRates();
 
     document.getElementById('savings-amount').value =
       'abc';
@@ -246,15 +207,7 @@ describe('interest-rates.js', () => {
       source: 'SARB'
     });
 
-    jest.resetModules();
-
-    await import('../interest-rates.js');
-
-    document.dispatchEvent(
-      new Event('DOMContentLoaded')
-    );
-
-    await Promise.resolve();
+    await initInterestRates();
 
     const amountEl =
       document.getElementById('savings-amount');
@@ -279,15 +232,7 @@ describe('interest-rates.js', () => {
       source: 'SARB'
     });
 
-    jest.resetModules();
-
-    await import('../interest-rates.js');
-
-    document.dispatchEvent(
-      new Event('DOMContentLoaded')
-    );
-
-    await Promise.resolve();
+    await initInterestRates();
 
     const amountEl =
       document.getElementById('savings-amount');
@@ -318,10 +263,8 @@ describe('interest-rates.js', () => {
       source: 'SARB'
     });
 
-    jest.resetModules();
-
     await expect(
-      import('../interest-rates.js')
+      initInterestRates()
     ).resolves.not.toThrow();
   });
 
@@ -330,13 +273,7 @@ describe('interest-rates.js', () => {
       () => new Promise(() => {})
     );
 
-    jest.resetModules();
-
-    import('../interest-rates.js');
-
-    document.dispatchEvent(
-      new Event('DOMContentLoaded')
-    );
+    initInterestRates();
 
     expect(document.getElementById('prime-rate').textContent)
       .toBe('...');

@@ -7,11 +7,12 @@ jest.mock('../supabase-client.js', () => ({
 }));
 
 jest.mock('../utils.js', () => ({
-  showToast: jest.fn()
+  showToast: jest.fn(),
+  navigateTo: jest.fn()
 }));
 
 import { createGroup } from '../supabase-client.js';
-import { showToast } from '../utils.js';
+import { navigateTo, showToast } from '../utils.js';
 
 import { initCreateGroup } from '../groups.js';
 
@@ -155,7 +156,7 @@ describe('create group functionality', () => {
   test('shows error when startDate is missing', async () => {
     initCreateGroup();
 
-    global.startDate = '';
+    document.getElementById('startDate').value = '';
 
     document
       .getElementById('create-group-form')
@@ -211,8 +212,7 @@ describe('create group functionality', () => {
 
     jest.advanceTimersByTime(1000);
 
-    expect(window.location.href)
-      .toBe('admin-dashboard.html');
+    expect(navigateTo).toHaveBeenCalledWith('admin-dashboard.html');
   });
 
   // =====================================================

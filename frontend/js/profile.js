@@ -23,7 +23,7 @@ export async function initProfile() {
     renderProfile(profile);
     await loadStats(user.id);
     await loadGroups();
-    setupForm(profile);
+    setupForm(user.id);
   } catch (err) {
     showToast('Failed to load profile: ' + err.message, 'error');
   }
@@ -120,7 +120,7 @@ async function loadGroups() {
   }
 }
 
-function setupForm(profile) {
+function setupForm(userId) {
   const form = document.getElementById('profile-form');
   if (!form) return;
 
@@ -135,11 +135,10 @@ function setupForm(profile) {
     btn.textContent = 'Saving...';
 
     try {
-      const user = await getCurrentUser();
       const { error } = await supabase
         .from('profiles')
         .update({ full_name: name, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
+        .eq('id', userId);
 
       if (error) throw error;
 

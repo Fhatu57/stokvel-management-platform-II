@@ -11,10 +11,10 @@ import {
 } from './supabase-client.js';
 import { formatCurrency, formatDate, showToast } from './utils.js';
 
-function getRole() {
+export function getRole() {
   try { return JSON.parse(localStorage.getItem('stokvel_user') || '{}').role || 'member'; } catch { return 'member'; }
 }
-function getUserId() {
+export function getUserId() {
   try { return JSON.parse(localStorage.getItem('stokvel_user') || '{}').id || null; } catch { return null; }
 }
 
@@ -89,6 +89,14 @@ window.confirmDisburse = async function() {
     btn.textContent = 'Confirm Disbursement';
   }
 };
+
+export async function markPaid(payoutId, groupId, contributionAmount) {
+  await markPayoutPaid(payoutId);
+  showToast('Disbursement recorded successfully!', 'success');
+  await loadPayoutSchedule(groupId, contributionAmount);
+}
+
+window.markPaid = markPaid;
 
 // ── Group selector ───────────────────────────────────────────
 
@@ -280,9 +288,9 @@ function enableDragSort(list) {
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function escHtml(str) {
+export function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function capitalize(s) {
+export function capitalize(s) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 }

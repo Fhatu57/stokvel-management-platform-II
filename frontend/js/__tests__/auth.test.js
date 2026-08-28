@@ -6,7 +6,12 @@ jest.mock('../supabase-client.js', () => ({
   signInWithGoogle: jest.fn(),
   signOut: jest.fn(() => Promise.resolve()),
   onAuthStateChange: jest.fn(),
-  acceptInvitation: jest.fn()
+  acceptInvitation: jest.fn(),
+  isSupabaseConfigured: true
+}));
+
+jest.mock('../utils.js', () => ({
+  navigateTo: jest.fn()
 }));
 
 import {
@@ -21,6 +26,7 @@ import {
   checkAuth,
   logout
 } from '../auth.js';
+import { navigateTo } from '../utils.js';
 
 describe('initLoginPage', () => {
 
@@ -162,8 +168,7 @@ describe('initLoginPage', () => {
       profile: {}
     });
 
-    expect(window.location.href)
-      .toBe('admin-dashboard.html');
+    expect(navigateTo).toHaveBeenCalledWith('admin-dashboard.html');
   });
 
   test('redirects treasurer correctly', async () => {
@@ -185,8 +190,7 @@ describe('initLoginPage', () => {
       profile: {}
     });
 
-    expect(window.location.href)
-      .toBe('treasurer-dashboard.html');
+    expect(navigateTo).toHaveBeenCalledWith('treasurer-dashboard.html');
   });
 
   test('redirects member correctly', async () => {
@@ -208,8 +212,7 @@ describe('initLoginPage', () => {
       profile: {}
     });
 
-    expect(window.location.href)
-      .toBe('member-dashboard.html');
+    expect(navigateTo).toHaveBeenCalledWith('member-dashboard.html');
   });
 
   test('accepts pending invitation', async () => {
@@ -272,8 +275,7 @@ describe('checkAuth', () => {
   test('redirects if no user exists', () => {
     checkAuth();
 
-    expect(window.location.href)
-      .toBe('index.html');
+    expect(navigateTo).toHaveBeenCalledWith('index.html');
   });
 
   test('updates sidebar info', () => {
@@ -380,8 +382,7 @@ describe('logout', () => {
 
     await Promise.resolve();
 
-    expect(window.location.href)
-      .toBe('index.html');
+    expect(navigateTo).toHaveBeenCalledWith('index.html');
   });
 
 });

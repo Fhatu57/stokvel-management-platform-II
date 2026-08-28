@@ -6,17 +6,28 @@
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-const SUPABASE_URL      = 'https://wzclnjbzouqietbordxi.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6Y2xuamJ6b3VxaWV0Ym9yZHhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5Mjc4OTEsImV4cCI6MjA5MTUwMzg5MX0.g4OqfuhERKGq0Ttdb-PinPMVnOdvNucTTfJtM_cXZZk';
+const config = window.STOKVEL_CONFIG || {};
+const SUPABASE_URL = String(config.supabaseUrl || '').trim();
+const SUPABASE_ANON_KEY = String(config.supabaseAnonKey || '').trim();
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+export const supabase = isSupabaseConfigured
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+function getSupabase() {
+  if (!supabase) {
+    throw new Error('Supabase is not configured. Copy config.example.js to config.js and add the public project settings.');
+  }
+  return supabase;
+}
 
 // ============================================================
 // AUTH
 // ============================================================
 
 export async function signInWithGoogle() {
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await getSupabase().auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin + '/index.html' },
   });
@@ -25,7 +36,7 @@ export async function signInWithGoogle() {
 }
 
 export async function signOut() {
-  await supabase.auth.signOut();
+  if (supabase) await getSupabase().auth.signOut();
   localStorage.removeItem('stokvel_user');
 }
 
@@ -37,8 +48,9 @@ export async function getCurrentUser() {
       if (parsed?.id) return { id: parsed.id, email: parsed.email };
     }
   } catch (_) {}
+  if (!supabase) return null;
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { user }, error } = await getSupabase().auth.getUser();
     if (error) throw error;
     return user;
   } catch (err) {
@@ -48,12 +60,13 @@ export async function getCurrentUser() {
 }
 
 export async function getMyRole() {
-  const { data, error } = await supabase.rpc('get_my_role');
+  const { data, error } = await getSupabase().rpc('get_my_role');
   if (error) throw error;
   return data;
 }
 
 export function onAuthStateChange(callback) {
+  if (!supabase) return { data: { subscription: { unsubscribe() {} } } };
   supabase.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
       try {
@@ -74,7 +87,7 @@ export function onAuthStateChange(callback) {
 // ============================================================
 
 export async function getProfile(userId) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('profiles').select('*').eq('id', userId).single();
   if (error) throw error;
   return data;
@@ -97,18 +110,18 @@ export async function createGroup(groupData) {
     created_by:          user.id,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('groups').insert([cleanData]).select().single();
   if (error) throw error;
 
-  await supabase.from('group_members').insert({ group_id: data.id, user_id: user.id });
+  await getSupabase().from('group_members').insert({ group_id: data.id, user_id: user.id });
   return data;
 }
 
 export async function getMyGroups() {
   const user = await getCurrentUser();
   if (!user) return [];
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('group_members')
     .select('groups(*, group_members(user_id))')
     .eq('user_id', user.id);
@@ -124,7 +137,7 @@ export async function sendInvitation(groupId, email, role = 'member') {
   const user = await getCurrentUser();
   if (!user) throw new Error('Not logged in');
   const token = crypto.randomUUID();
-  const { data, error } = await supabase.from('invitations').insert({
+  const { data, error } = await getSupabase().from('invitations').insert({
     group_id: groupId, email: email.toLowerCase().trim(),
     invited_by: user.id, status: 'pending', token, role,
   }).select().single();
@@ -133,7 +146,7 @@ export async function sendInvitation(groupId, email, role = 'member') {
 }
 
 export async function getGroupInvitations(groupId) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('invitations').select('*').eq('group_id', groupId)
     .order('created_at', { ascending: false });
   if (error) throw error;
@@ -141,7 +154,7 @@ export async function getGroupInvitations(groupId) {
 }
 
 export async function acceptInvitation(token) {
-  const { data, error } = await supabase.rpc('accept_invitation', { _token: token });
+  const { data, error } = await getSupabase().rpc('accept_invitation', { _token: token });
   if (error) throw error;
   return data;
 }
@@ -154,7 +167,7 @@ export async function acceptInvitation(token) {
 export async function getMyContributions() {
   const user = await getCurrentUser();
   if (!user) return [];
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('contributions').select('*, groups(name)')
     .eq('user_id', user.id).order('due_date', { ascending: false });
   if (error) throw error;
@@ -166,7 +179,7 @@ export async function getAllContributions() {
   const myGroups = await getMyGroups();
   if (!myGroups.length) return [];
   const groupIds = myGroups.map(g => g.id);
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('contributions')
     .select('*, groups(name), profiles(full_name, email)')
     .in('group_id', groupIds)
@@ -177,7 +190,7 @@ export async function getAllContributions() {
 
 /** Treasurer/Admin: update contribution status */
 export async function updateContributionStatus(id, status) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('contributions')
     .update({ status, paid_at: status === 'completed' ? new Date().toISOString() : null })
     .eq('id', id).select();
@@ -187,7 +200,7 @@ export async function updateContributionStatus(id, status) {
 
 /** Treasurer/Admin: record a new contribution entry */
 export async function recordContribution({ groupId, userId, amount, dueDate, status }) {
-  const { data, error } = await supabase.from('contributions').insert({
+  const { data, error } = await getSupabase().from('contributions').insert({
     group_id: groupId, user_id: userId,
     amount: Number(amount), due_date: dueDate, status: status || 'pending',
   }).select().single();
@@ -200,7 +213,7 @@ export async function recordContribution({ groupId, userId, amount, dueDate, sta
 // ============================================================
 
 export async function getPayoutSchedule(groupId) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('payout_schedule')
     .select('*, profiles(full_name, email, avatar_url)')
     .eq('group_id', groupId)
@@ -211,7 +224,7 @@ export async function getPayoutSchedule(groupId) {
 
 /** Replace entire payout schedule for a group */
 export async function savePayoutSchedule(groupId, orderedUserIds, contributionAmount, memberCount) {
-  await supabase.from('payout_schedule').delete().eq('group_id', groupId);
+  await getSupabase().from('payout_schedule').delete().eq('group_id', groupId);
   if (!orderedUserIds.length) return [];
 
   const today = new Date();
@@ -226,13 +239,13 @@ export async function savePayoutSchedule(groupId, orderedUserIds, contributionAm
     };
   });
 
-  const { data, error } = await supabase.from('payout_schedule').insert(rows).select();
+  const { data, error } = await getSupabase().from('payout_schedule').insert(rows).select();
   if (error) throw error;
   return data;
 }
 
 export async function markPayoutPaid(payoutId) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('payout_schedule')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
     .eq('id', payoutId).select().single();
@@ -248,7 +261,7 @@ export async function getMyMeetings() {
   const myGroups = await getMyGroups();
   if (!myGroups.length) return [];
   const groupIds = myGroups.map(g => g.id);
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('meetings')
     .select('*, groups(name), profiles(full_name)')
     .in('group_id', groupIds)
@@ -258,7 +271,7 @@ export async function getMyMeetings() {
 }
 
 export async function getGroupMeetings(groupId) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('meetings')
     .select('*, profiles(full_name)')
     .eq('group_id', groupId)
@@ -270,7 +283,7 @@ export async function getGroupMeetings(groupId) {
 export async function createMeeting({ groupId, title, scheduledAt, location, agenda }) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Not logged in');
-  const { data, error } = await supabase.from('meetings').insert({
+  const { data, error } = await getSupabase().from('meetings').insert({
     group_id: groupId, title: title.trim(),
     scheduled_at: scheduledAt,
     location: location?.trim() || null,
@@ -282,7 +295,7 @@ export async function createMeeting({ groupId, title, scheduledAt, location, age
 }
 
 export async function updateMeetingMinutes(meetingId, minutes) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('meetings')
     .update({ minutes: minutes.trim(), updated_at: new Date().toISOString() })
     .eq('id', meetingId).select().single();
@@ -291,7 +304,7 @@ export async function updateMeetingMinutes(meetingId, minutes) {
 }
 
 export async function deleteMeeting(meetingId) {
-  const { error } = await supabase.from('meetings').delete().eq('id', meetingId);
+  const { error } = await getSupabase().from('meetings').delete().eq('id', meetingId);
   if (error) throw error;
 }
 
@@ -304,7 +317,7 @@ export async function deleteMeeting(meetingId) {
 // ============================================================
 
 export async function getLatestInterestRates() {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('interest_rates')
     .select('*')
     .order('fetched_at', { ascending: false })
@@ -320,7 +333,7 @@ export async function getLatestInterestRates() {
 
 /** Contribution compliance per member for a group */
 export async function getContributionCompliance(groupId) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('contributions')
     .select('user_id, status, profiles(full_name)')
     .eq('group_id', groupId);
@@ -344,7 +357,7 @@ export async function getContributionCompliance(groupId) {
 
 /** Total contributions collected per month for a group */
 export async function getContributionsByMonth(groupId) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('contributions')
     .select('amount, paid_at')
     .eq('group_id', groupId)

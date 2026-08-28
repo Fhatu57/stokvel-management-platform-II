@@ -16,6 +16,8 @@
     </div>
   </main>
 
+  <script src="config.js"></script>
+
   <script type="module">
     import { supabase } from './js/supabase-client.js';
     import { showToast } from './js/utils.js';
@@ -24,9 +26,9 @@
       // Get token from URL
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
-      
+
       const statusDiv = document.getElementById('invite-status');
-      
+
       if (!token) {
         statusDiv.innerHTML = `
           <h2>Invalid Invitation</h2>
@@ -35,11 +37,11 @@
         `;
         return;
       }
-      
+
       try {
         // Check if user is logged in
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (!session) {
           // Not logged in - store token and redirect to login
           localStorage.setItem('pending_invite_token', token);
@@ -50,21 +52,21 @@
           `;
           return;
         }
-        
+
         // User is logged in, accept the invitation
         statusDiv.innerHTML = `
           <h2>Accepting Invitation...</h2>
           <p>Adding you to the stokvel group...</p>
         `;
-        
+
         const result = await supabase.rpc('accept_invitation', { _token: token });
-        
+
         if (result.error) throw new Error(result.error.message);
 
         // Role comes back in the RPC result — no second query needed
         // (a second query would fail because RLS only allows admins/invitee by email)
         const role = result.data?.role || 'member';
-        
+
         statusDiv.innerHTML = `
           <h2>✓ Invitation Accepted!</h2>
           <p>You have been added to the stokvel group as a <strong>${role}</strong>.</p>
@@ -72,9 +74,9 @@
             Go to Dashboard
           </a>
         `;
-        
+
         showToast(`Successfully joined as ${role}!`, 'success');
-        
+
       } catch (err) {
         console.error('Accept invitation error:', err);
         statusDiv.innerHTML = `
@@ -84,7 +86,7 @@
         `;
       }
     }
-    
+
     acceptInvitation();
   </script>
 </body>

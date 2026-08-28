@@ -1,110 +1,105 @@
-// js/interest-rates.js - Complete working version
+import { getLatestInterestRates } from './supabase-client.js';
 
-// Current real SA rates (March 2026)
-const CURRENT_REPO_RATE = 6.75;    // SARB repo rate
-const CURRENT_PRIME_RATE = 10.25;  // Prime rate (Repo + 3.5%)
+const FALLBACK_RATES = Object.freeze({
+  repo_rate: 6.75,
+  prime_rate: 10.25,
+  source: 'cached portfolio data',
+  fetched_at: null,
+});
 
-// Function to calculate compound growth with monthly contributions
-function calculateProjectedSavings(monthlyContribution, months, annualInterestRate) {
-    const monthlyRate = annualInterestRate / 100 / 12;
-    let futureValue = 0;
-    
-    for (let i = 0; i < months; i++) {
-        futureValue = (futureValue + monthlyContribution) * (1 + monthlyRate);
-    }
-    
-    return futureValue;
+export function calculateProjectedSavings(monthlyContribution, months, annualInterestRate) {
+  const contribution = Number(monthlyContribution);
+  const duration = Number(months);
+  const annualRate = Number(annualInterestRate);
+
+  if (!Number.isFinite(contribution) || contribution <= 0) return 0;
+  if (!Number.isFinite(duration) || duration <= 0) return 0;
+  if (!Number.isFinite(annualRate) || annualRate < 0) return 0;
+
+  const monthlyRate = annualRate / 100 / 12;
+  let futureValue = 0;
+  for (let month = 0; month < Math.floor(duration); month += 1) {
+    futureValue = (futureValue + contribution) * (1 + monthlyRate);
+  }
+  return futureValue;
 }
 
-// Update the UI with rates
-function updateInterestRateDisplay() {
-    console.log("Updating interest rate display...");
-    
-    const primeElem = document.getElementById('prime-rate');
-    const repoElem = document.getElementById('repo-rate');
-    const lastUpdatedElem = document.getElementById('rate-last-updated');
-    
-    if (primeElem) {
-        primeElem.textContent = `${CURRENT_PRIME_RATE}%`;
-        console.log(`Prime rate set to: ${CURRENT_PRIME_RATE}%`);
-    } else {
-        console.error("Could not find element: prime-rate");
-    }
-    
-    if (repoElem) {
-        repoElem.textContent = `${CURRENT_REPO_RATE}%`;
-        console.log(`Repo rate set to: ${CURRENT_REPO_RATE}%`);
-    } else {
-        console.error("Could not find element: repo-rate");
-    }
-    
-    if (lastUpdatedElem) {
-        const today = new Date();
-        lastUpdatedElem.textContent = `Last updated: ${today.toLocaleDateString('en-ZA')}`;
-    }
-    
-    // Store rates globally for calculator
-    window.currentPrimeRate = CURRENT_PRIME_RATE;
+function setText(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = value;
 }
 
-// Calculate and display projection
-function calculateAndDisplayProjection() {
-    const amountInput = document.getElementById('savings-amount');
-    const monthsInput = document.getElementById('savings-months');
-    const projectedElem = document.getElementById('projected-savings');
-    
-    if (!amountInput || !monthsInput || !projectedElem) {
-        console.error("Calculator elements not found");
-        return;
-    }
-    
-    const amount = parseFloat(amountInput.value);
-    const months = parseInt(monthsInput.value);
-    const rate = window.currentPrimeRate || CURRENT_PRIME_RATE;
-    
-    if (isNaN(amount) || isNaN(months)) {
-        projectedElem.textContent = 'R0';
-        return;
-    }
-    
-    const projected = calculateProjectedSavings(amount, months, rate);
-    projectedElem.textContent = `R ${projected.toFixed(2)}`;
-    console.log(`Projected: R${projected.toFixed(2)} for R${amount}/month over ${months} months at ${rate}%`);
+function displayRates(rates) {
+  const prime = Number(rates.prime_rate);
+  const repo = Number(rates.repo_rate);
+  window.currentPrimeRate = Number.isFinite(prime) ? prime : FALLBACK_RATES.prime_rate;
+  window.currentRepoRate = Number.isFinite(repo) ? repo : FALLBACK_RATES.repo_rate;
+
+  setText('prime-rate', `${window.currentPrimeRate}%`);
+  setText('repo-rate', `${window.currentRepoRate}%`);
+  setText('rate-source', rates.source || FALLBACK_RATES.source);
+
+  const date = rates.fetched_at ? new Date(rates.fetched_at) : new Date();
+  setText('rate-last-updated', `Last updated: ${date.toLocaleDateString('en-ZA')}`);
 }
 
-// Initialize everything when page loads
-function initInterestRates() {
-    console.log("Initializing interest rates module...");
-    updateInterestRateDisplay();
-    
-    // Set up calculator button
-    const calcBtn = document.getElementById('calculate-projection');
-    if (calcBtn) {
-        calcBtn.addEventListener('click', calculateAndDisplayProjection);
-        console.log("Calculator button event attached");
-    } else {
-        console.error("Could not find calculate-projection button");
-    }
-    
-    // Set up auto-calculation on input change
-    const amountInput = document.getElementById('savings-amount');
-    const monthsInput = document.getElementById('savings-months');
-    
-    if (amountInput) {
-        amountInput.addEventListener('input', calculateAndDisplayProjection);
-    }
-    if (monthsInput) {
-        monthsInput.addEventListener('input', calculateAndDisplayProjection);
-    }
-    
-    // Run initial calculation
-    calculateAndDisplayProjection();
+export function calculateAndDisplayProjection() {
+  const amountInput = document.getElementById('savings-amount');
+  const monthsInput = document.getElementById('savings-months');
+  const projectedElement = document.getElementById('projected-savings');
+  if (!amountInput || !monthsInput || !projectedElement) return;
+
+  const amount = Number(amountInput.value);
+  const months = Number(monthsInput.value);
+  const rate = Number(window.currentPrimeRate ?? FALLBACK_RATES.prime_rate);
+  const projected = calculateProjectedSavings(amount, months, rate);
+
+  projectedElement.textContent = `R ${projected.toFixed(2)}`;
+  setText('projection-note', `Based on the current ${rate}% prime rate with monthly compounding`);
 }
 
-// Wait for DOM to be ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initInterestRates);
-} else {
-    // DOM is already loaded
+export async function initInterestRates() {
+  const primeElement = document.getElementById('prime-rate');
+  const repoElement = document.getElementById('repo-rate');
+  if (!primeElement && !repoElement) return;
+
+  setText('prime-rate', '...');
+  setText('repo-rate', '...');
+
+  let rates;
+  try {
+    rates = await getLatestInterestRates();
+  } catch (error) {
+    console.warn('Live interest rates are unavailable; using cached values.', error);
+    rates = FALLBACK_RATES;
+  }
+
+  displayRates(rates || FALLBACK_RATES);
+
+  const calculateButton = document.getElementById('calculate-projection');
+  const amountInput = document.getElementById('savings-amount');
+  const monthsInput = document.getElementById('savings-months');
+
+  if (calculateButton && !calculateButton.dataset.projectionBound) {
+    calculateButton.addEventListener('click', calculateAndDisplayProjection);
+    calculateButton.dataset.projectionBound = 'true';
+  }
+  if (amountInput && !amountInput.dataset.projectionBound) {
+    amountInput.addEventListener('input', calculateAndDisplayProjection);
+    amountInput.dataset.projectionBound = 'true';
+  }
+  if (monthsInput && !monthsInput.dataset.projectionBound) {
+    monthsInput.addEventListener('input', calculateAndDisplayProjection);
+    monthsInput.dataset.projectionBound = 'true';
+  }
+
+  calculateAndDisplayProjection();
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initInterestRates, { once: true });
+  } else {
     initInterestRates();
+  }
 }
