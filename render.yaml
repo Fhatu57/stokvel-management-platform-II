@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: stokvel-platform-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+
+  - type: web
+    name: stokvel-platform-web
+    runtime: static
+    buildCommand: npm run build:config
+    staticPublishPath: ./frontend
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false

@@ -2,7 +2,7 @@
 
 A web platform for South African savings groups to manage contributions, payout schedules, meetings, invitations and financial reporting.
 
-> **Portfolio status:** The no-login recruiter demo is ready. Live Supabase authentication will be enabled when the independently owned Supabase and Google OAuth projects are connected.
+> **Portfolio status:** The application is prepared for a public Render deployment. Live authentication will be enabled when the independently owned Supabase and Google OAuth projects are connected.
 
 ## Recruiter demo
 
@@ -37,7 +37,7 @@ This repository preserves the original Git history and contributor attribution. 
 - CSV and printable PDF reports
 - South African interest-rate savings projections
 - Automated backend and browser-module tests
-- GitHub Actions CI and Azure App Service deployment
+- GitHub Actions CI and a reproducible two-service Render deployment
 
 ## Technology
 
@@ -48,7 +48,7 @@ This repository preserves the original Git history and contributor attribution. 
 | Data and authentication | Supabase and PostgreSQL |
 | Tests | Jest, jsdom and Supertest |
 | Automation | GitHub Actions |
-| Hosting | Azure App Service |
+| Hosting | Render Static Site and Render Web Service |
 
 ## Run locally
 
@@ -82,12 +82,14 @@ The deployment workflow runs both backend and frontend tests. Test failures stop
 
 ## Deploy
 
-The repository includes a generic Azure workflow with no team-owned application names or credentials. Configure these GitHub repository settings before merging the portfolio branch into `main`:
+The root `render.yaml` Blueprint creates two public services from the same repository:
 
-- Repository variable: `AZURE_WEBAPP_NAME`
-- Repository secret: `AZURE_WEBAPP_PUBLISH_PROFILE`
+- `stokvel-platform-web`: the real multipage frontend, hosted as a fast static site.
+- `stokvel-platform-api`: the Express backend, hosted as a Node web service with `/api/health` monitoring.
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the complete Supabase, Google OAuth, GitHub and Azure checklist.
+The frontend build generates `frontend/config.js` from the public `SUPABASE_URL` and `SUPABASE_ANON_KEY` deployment settings. These values are not committed to Git.
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the complete Supabase, Google OAuth, GitHub and Render checklist.
 
 ## Repository layout
 
@@ -97,6 +99,8 @@ frontend/                Application pages and browser modules
 supabase/migrations/     Reproducible PostgreSQL schema and RLS policies
 .github/workflows/       CI and deployment automation
 docs/                    Deployment and portfolio documentation
+render.yaml              Render frontend and backend services
+scripts/                 Deployment configuration generator
 ```
 
 ## Current limitations
