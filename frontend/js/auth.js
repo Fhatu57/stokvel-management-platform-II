@@ -22,7 +22,7 @@ export function initLoginPage() {
     googleBtn.setAttribute('aria-disabled', 'true');
     googleBtn.textContent = 'Google sign-in coming soon';
     if (authStatus) {
-      authStatus.textContent = 'Live authentication is being connected. The recruiter demo remains fully available.';
+      authStatus.textContent = 'Google sign-in is not configured for this deployment.';
     }
   }
 
@@ -37,7 +37,7 @@ export function initLoginPage() {
         googleBtn.disabled = false;
         googleBtn.textContent = 'Sign in with Google';
         if (authStatus) {
-          authStatus.textContent = 'Sign-in is temporarily unavailable. Please use the recruiter demo.';
+          authStatus.textContent = 'Sign-in is temporarily unavailable. Please try again later.';
         }
       }
     });

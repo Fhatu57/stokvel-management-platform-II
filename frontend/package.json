@@ -25,8 +25,7 @@
   "js/payouts.js",
   "js/utils.js",
   "js/notifications.js",
-  "js/profile.js",
-  "js/demo.js"
+  "js/profile.js"
 
 
 ],

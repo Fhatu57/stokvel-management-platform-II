@@ -7,12 +7,7 @@ A web platform for South African savings groups to manage contributions, payout 
 ## Live deployment
 
 - [Open the application](https://stokvel-platform-web.onrender.com)
-- [Open the recruiter demo](https://stokvel-platform-web.onrender.com/demo.html)
 - [Check the backend health endpoint](https://stokvel-platform-api.onrender.com/api/health)
-
-## Recruiter demo
-
-The read-only demo requires no account and contains no personal information. It includes switchable member, treasurer and administrator dashboards with representative South African rand data. Use the live recruiter-demo link above or run the application locally and open `http://localhost:3000/demo.html`.
 
 ## Project provenance
 
@@ -61,7 +56,7 @@ npm ci
 npm start
 ```
 
-Open `http://localhost:3000` for the application or `http://localhost:3000/demo.html` for the recruiter demo.
+Open `http://localhost:3000` for the application.
 
 ## Connect Supabase
 
@@ -107,7 +102,6 @@ scripts/                 Deployment configuration generator
 
 ## Current limitations
 
-- The recruiter demo uses safe, static sample data and is intentionally read-only.
 - Live Google authentication requires an independently owned Supabase project and OAuth credentials.
 - The legacy `/groups` and `/invites` API routes use in-memory storage; authenticated application data is handled through Supabase.
 
