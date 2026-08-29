@@ -15,6 +15,10 @@ services:
     buildCommand: npm run build:config
     staticPublishPath: ./frontend
     autoDeployTrigger: checksPass
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: SUPABASE_URL
         sync: false
