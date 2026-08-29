@@ -16,7 +16,9 @@ The read-only demo requires no account and contains no personal information. It 
 
 ## Project provenance
 
-This application began as a five-person academic team project created by:
+This application began as a five-person academic team project. The original group repository is available at [Boitumelo-555/Stokvel-Management-Platform](https://github.com/Boitumelo-555/Stokvel-Management-Platform).
+
+The original team members were:
 
 - Boitumelo Nkosi
 - Emmanuel Mwandla
